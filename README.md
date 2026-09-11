@@ -61,8 +61,6 @@ Many modern fitness apps rely on cloud authentication, paywalls, or persistent i
    ```bash
    git clone [https://github.com/nathan-doyle/Buaic-Workout-Tracker.git](https://github.com/nathan-doyle/Buaic-Workout-Tracker.git)
    cd Buaic-Workout-Tracker
-   npm install
-   npx expo start
    ```
 
 2. **Install dependencies**:
