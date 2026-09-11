@@ -18,8 +18,6 @@ An offline-first mobile workout tracker built with React Native, Expo, and SQLit
 
 ---
 
----
-
 ## The Problem
 Many modern fitness apps rely on cloud authentication, paywalls, or persistent internet connections—failing inside basements or shielded gym facilities where mobile reception is unreliable. Relying on simple notes apps requires manual set formatting, repetitive typing under fatigue, and manually switching to a separate clock app for rest intervals. 
 
@@ -63,3 +61,20 @@ Many modern fitness apps rely on cloud authentication, paywalls, or persistent i
    ```bash
    git clone [https://github.com/nathan-doyle/Buaic-Workout-Tracker.git](https://github.com/nathan-doyle/Buaic-Workout-Tracker.git)
    cd Buaic-Workout-Tracker
+   npm install
+   npx expo start
+   ```
+
+2. **Install dependencies***:
+   ```bash
+   npm install
+   ```
+
+3. **Start the development server**:
+   ```bash
+   npx expo start
+   ```
+
+4. **Run on a device or emulator**:
+   Scan the displayed QR code with the Expo Go app (Android) or Camera app (iOS).
+   **Or** press a in the terminal to run directly on a connected Android device or emulator.
