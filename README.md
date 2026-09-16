@@ -59,7 +59,7 @@ Many modern fitness apps rely on cloud authentication, paywalls, or persistent i
 
 1. **Clone the repository**:
    ```bash
-   git clone [https://github.com/nathan-doyle/Buaic-Workout-Tracker.git](https://github.com/nathan-doyle/Buaic-Workout-Tracker.git)
+   git clone https://github.com/nathan-doyle/Buaic-Workout-Tracker.git
    cd Buaic-Workout-Tracker
    ```
 
