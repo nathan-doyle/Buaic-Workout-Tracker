@@ -31,6 +31,25 @@ export function localDateString(date: Date, tzOffsetMinutes: number): string {
   return formatUtcDate(new Date(time + tzOffsetMinutes * MS_PER_MINUTE));
 }
 
+/** Today's local date on this device (or of `now`). */
+export function todayLocalDate(now: Date = new Date()): string {
+  return localDateString(now, tzOffsetMinutesOf(now));
+}
+
+/**
+ * A local date as display text, e.g. `formatLocalDate('2026-11-14', 'en-GB', { weekday: 'short' })`.
+ * Formats local noon of that day, so the device's time zone can't shift the date.
+ */
+export function formatLocalDate(
+  localDate: string,
+  locale?: string,
+  options?: Intl.DateTimeFormatOptions
+): string {
+  const midnight = new Date(requireUtcMidnight(localDate));
+  const noon = new Date(midnight.getUTCFullYear(), midnight.getUTCMonth(), midnight.getUTCDate(), 12);
+  return noon.toLocaleDateString(locale, options);
+}
+
 /** True for a well-formed `YYYY-MM-DD` string naming a real calendar day. */
 export function isLocalDateString(value: string): boolean {
   return parseToUtcMidnight(value) !== null;

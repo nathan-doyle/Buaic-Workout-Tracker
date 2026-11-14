@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 
 import AddExerciseModal from '../../components/AddExerciseModal';
+import { formatWeight } from '../../lib/units';
 import { DEFAULT_SPLITS, useWorkout } from './WorkoutProvider';
 
 export default function WorkoutScreen() {
@@ -51,8 +52,6 @@ export default function WorkoutScreen() {
     sceneRef.current?.measureInWindow((_x, y) => setSceneTop(y));
   };
 
-  const roundToHalf = (num: number) => Math.round(num * 2) / 2;
-
   return (
     <>
       <View ref={sceneRef} style={{ flex: 1 }} onLayout={measureSceneTop}>
@@ -82,10 +81,7 @@ export default function WorkoutScreen() {
               const bestPastSet = historyData[item.id];
               let targetText = '—';
               if (bestPastSet) {
-                const targetWeight = unit === 'lb'
-                  ? Math.round(bestPastSet.weight * 2.20462)
-                  : roundToHalf(bestPastSet.weight);
-                targetText = `${targetWeight}${unit} × ${bestPastSet.reps}`;
+                targetText = `${formatWeight(bestPastSet.weight, unit)}${unit} × ${bestPastSet.reps}`;
               }
 
               return (

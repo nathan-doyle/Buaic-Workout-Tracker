@@ -21,6 +21,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
+import { formatVolume, formatWeight as formatKg } from '../lib/units';
 
 export default function WorkoutSummaryModal({ visible, summaryData, unit = 'kg', onClose }) {
   // Reference hook to target the visual recap card for screenshotting
@@ -30,14 +31,10 @@ export default function WorkoutSummaryModal({ visible, summaryData, unit = 'kg',
 
   const { splitName, totalVolume, totalSets, exerciseHighlights, newPRCount } = summaryData;
 
-  const roundToHalf = (num) => Math.round(num * 2) / 2;
+  // V2 Phase 2: exact conversion, display rounding kg 0.25 / lb 0.5 (lib/units).
+  const formatWeight = (kgWeight) => formatKg(kgWeight || 0, unit);
 
-  const formatWeight = (kgWeight) => {
-    if (!kgWeight) return 0;
-    return unit === 'lb' ? Math.round(kgWeight * 2.20462) : roundToHalf(kgWeight);
-  };
-
-  const displayVolume = formatWeight(totalVolume);
+  const displayVolume = formatVolume(totalVolume, unit);
 
   // ==========================================
   // IMAGE CAPTURE & NATIVE SHARING

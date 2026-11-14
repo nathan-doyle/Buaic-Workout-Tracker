@@ -2,12 +2,13 @@
  * Active-workout state shared by the tab shell (header unit toggle, rest timer,
  * summary) and the Workout tab.
  *
- * V2 Phase 1b: this is V1's `App.js` controller logic moved out of the root
- * component unchanged — including V1's 2.20462 conversion, 0.5 kg rounding and
- * in-memory workout state. Phase 2/3 replace it (exact units, crash-safe
- * in-progress sessions); see V2_PROGRESS.md.
+ * V2 Phase 1b: V1's `App.js` controller logic moved out of the root component.
+ * Phase 2: the unit is a persisted setting, weights are converted exactly
+ * (lib/units) and stored in kg at full precision, splits are routines and removing
+ * an exercise keeps its history. The workout itself is still in memory, as in V1;
+ * Phase 3 makes it crash-safe. See V2_PROGRESS.md.
  */
-import React, { createContext, use, useEffect, useState } from 'react';
+import React, { createContext, use, useEffect, useRef, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 
 import * as Haptics from 'expo-haptics';
@@ -15,7 +16,6 @@ import * as Notifications from 'expo-notifications';
 import { setAudioModeAsync } from 'expo-audio';
 
 import {
-  initDatabase,
   getExercisesBySplit,
   saveWorkoutSession,
   getLastExercisePerformance,
@@ -24,27 +24,39 @@ import {
   type PastSet,
   type SetLogInput,
 } from '../../db/database';
-import type { WeightUnit } from '../../lib/units';
+import { V1_SPLITS } from '../../db/v1Constants';
+import {
+  convertEntry,
+  entryFromKg,
+  entryToKg,
+  type WeightEntry,
+  type WeightUnit,
+} from '../../lib/units';
+import { useDataRevision } from '../backup/dataRevision';
+import { settingsStore, useSettings } from '../settings/settingsStore';
 
 // Supported default routines
-export const DEFAULT_SPLITS = [
-  'Push',
-  'Pull',
-  'Legs',
-  'Anterior',
-  'Posterior',
-  'Upper',
-  'Lower',
-  'Full Body',
-];
+export const DEFAULT_SPLITS: readonly string[] = V1_SPLITS;
 
 /** A set row being edited on the Workout tab (inputs are kept as typed text). */
 export interface SetRow {
   setNumber: number;
+  /** The weight text as shown, in the current unit. */
   weight: string;
+  /** Exact kg behind `weight` while it still reads `exactText` (see `WeightEntry`). */
+  exactKg?: number;
+  exactText?: string;
   reps: string;
   completed: boolean;
 }
+
+const entryOf = (row: SetRow): WeightEntry => ({ text: row.weight, exactKg: row.exactKg, exactText: row.exactText });
+const withEntry = (row: SetRow, entry: WeightEntry): SetRow => ({
+  ...row,
+  weight: entry.text,
+  exactKg: entry.exactKg,
+  exactText: entry.exactText,
+});
 
 /** Set rows per exercise id for one split. */
 export type SplitWorkout = Record<number, SetRow[]>;
@@ -115,8 +127,8 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   const [summaryData, setSummaryData] = useState<WorkoutSummary | null>(null);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
 
-  // Global Unit State ('kg' | 'lb')
-  const [unit, setUnit] = useState<WeightUnit>('kg');
+  // Global unit ('kg' | 'lb'), persisted in settings
+  const { unit } = useSettings();
 
   // ==========================================
   // HARDWARE INITIALIZATION (CROSS-PLATFORM)
@@ -171,56 +183,69 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    initDatabase();
+    // The database was opened and migrated by <DatabaseGate> before this mounted.
     setupAudioAndNotifications();
     loadSplitData(selectedSplit);
     // Mount-only, exactly as V1.
   }, []);
 
-  // ==========================================
-  // CONVERSION & ROUNDING HELPERS (V1 behaviour, replaced in Phase 2)
-  // ==========================================
-  const roundToHalf = (num: number) => Math.round(num * 2) / 2;
+  // After a backup import replaced all data, drop the in-memory workout and reload.
+  const dataRevision = useDataRevision();
+  const [loadedRevision, setLoadedRevision] = useState(dataRevision);
+  useEffect(() => {
+    if (dataRevision === loadedRevision) return;
+    setLoadedRevision(dataRevision);
+    setExercisesMap({});
+    setWorkoutData({});
+    setHistoryData({});
+    setShowRestTimer(false);
+    unitRef.current = unit; // reloaded in the (possibly imported) current unit
+    loadSplitData(selectedSplit, true);
+  }, [dataRevision]);
 
-  const convertWeight = (val: string, targetUnit: WeightUnit): string => {
-    const num = parseFloat(val);
-    if (isNaN(num)) return val;
-    if (targetUnit === 'lb') {
-      return String(Math.round(num * 2.20462));
-    }
-    return String(roundToHalf(num / 2.20462));
-  };
-
-  const toggleUnit = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const newUnit: WeightUnit = unit === 'kg' ? 'lb' : 'kg';
-    setUnit(newUnit);
-
-    // Convert active table inputs instantly
+  // When the unit changes (header toggle or Settings), re-express typed weights in it.
+  // Declared after the reload effect so an import that also changed the unit isn't converted twice.
+  const unitRef = useRef(unit);
+  useEffect(() => {
+    const from = unitRef.current;
+    if (from === unit) return;
+    unitRef.current = unit;
     setWorkoutData((prev) => {
       const updatedWorkoutData: Record<string, SplitWorkout> = {};
       Object.keys(prev).forEach((splitKey) => {
         const splitData = prev[splitKey];
         const updatedSplitData: SplitWorkout = {};
-
         Object.keys(splitData).forEach((key) => {
           const exId = Number(key);
-          updatedSplitData[exId] = splitData[exId].map((setRow) => ({
-            ...setRow,
-            weight: convertWeight(setRow.weight, newUnit),
-          }));
+          updatedSplitData[exId] = splitData[exId].map((setRow) =>
+            withEntry(setRow, convertEntry(entryOf(setRow), from, unit))
+          );
         });
-
         updatedWorkoutData[splitKey] = updatedSplitData;
       });
       return updatedWorkoutData;
     });
+  }, [unit]);
+
+  // ==========================================
+  // UNIT TOGGLE (persisted; stored data never changes)
+  // ==========================================
+  const toggleUnit = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const newUnit: WeightUnit = unit === 'kg' ? 'lb' : 'kg';
+    try {
+      settingsStore.set('unit', newUnit);
+    } catch (e) {
+      console.error('Error saving unit:', e);
+      return;
+    }
+    // Typed inputs are converted by the unit effect above (also when changed in Settings).
   };
 
   // ==========================================
   // ROUTINE & EXERCISE DATA MANAGEMENT
   // ==========================================
-  const loadSplitData = (split: string) => {
+  const loadSplitData = (split: string, reset = false) => {
     const list = getExercisesBySplit(split);
     setExercisesMap((prev) => ({ ...prev, [split]: list }));
 
@@ -231,21 +256,16 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     setHistoryData((prev) => ({ ...prev, ...historyMap }));
 
     setWorkoutData((prev) => {
-      if (prev[split]) return prev;
+      if (prev[split] && !reset) return prev;
 
       const initialSplitData: SplitWorkout = {};
       list.forEach((ex) => {
         const bestSet = historyMap[ex.id];
-        let defaultWeight = '0';
-        if (bestSet) {
-          defaultWeight = unit === 'lb'
-            ? String(Math.round(bestSet.weight * 2.20462))
-            : String(roundToHalf(bestSet.weight));
-        }
+        const defaultWeight: WeightEntry = bestSet ? entryFromKg(bestSet.weight, unit) : { text: '0' };
         const defaultReps = bestSet ? String(bestSet.reps) : '10';
 
         initialSplitData[ex.id] = [
-          { setNumber: 1, weight: defaultWeight, reps: defaultReps, completed: false },
+          withEntry({ setNumber: 1, weight: '0', reps: defaultReps, completed: false }, defaultWeight),
         ];
       });
 
@@ -271,12 +291,10 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 
       const updatedSets: SetRow[] = [
         ...currentSets,
-        {
-          setNumber: newSetNumber,
-          weight: lastSet ? lastSet.weight : '0',
-          reps: lastSet ? lastSet.reps : '10',
-          completed: false,
-        },
+        withEntry(
+          { setNumber: newSetNumber, weight: '0', reps: lastSet ? lastSet.reps : '10', completed: false },
+          lastSet ? entryOf(lastSet) : { text: '0' }
+        ),
       ];
 
       return {
@@ -356,7 +374,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   const confirmDeleteExercise = (exerciseId: number, exerciseName: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    Alert.alert('Remove Exercise?', `Are you sure you want to remove ${exerciseName}?`, [
+    Alert.alert('Remove Exercise?', `Are you sure you want to remove ${exerciseName}? Sets you already logged stay in your history.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
@@ -395,10 +413,8 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
         let maxReps = 0;
 
         completedSets.forEach((s) => {
-          let weightInKg = parseFloat(s.weight) || 0;
-          if (unit === 'lb' && weightInKg > 0) {
-            weightInKg = roundToHalf(weightInKg / 2.20462);
-          }
+          // Exact kg (lb × 0.45359237), never rounded for storage.
+          const weightInKg = entryToKg(entryOf(s), unit);
 
           const repsNum = parseInt(s.reps, 10) || 0;
           calculatedVolume += weightInKg * repsNum;

@@ -11,6 +11,8 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { getWorkoutHistory, deleteWorkoutSession } from '../db/database';
+import { formatLocalDate } from '../lib/dates';
+import { formatVolume, formatWeight as formatKg } from '../lib/units';
 
 export default function HistoryTracker({ unit = 'kg' }) {
   // ==========================================
@@ -28,12 +30,8 @@ export default function HistoryTracker({ unit = 'kg' }) {
     setHistory(data);
   };
 
-  const roundToHalf = (num) => Math.round(num * 2) / 2;
-
-  const formatWeight = (kgWeight) => {
-    if (!kgWeight) return 0;
-    return unit === 'lb' ? Math.round(kgWeight * 2.20462) : roundToHalf(kgWeight);
-  };
+  // V2 Phase 2: exact conversion, display rounding kg 0.25 / lb 0.5 (lib/units).
+  const formatWeight = (kgWeight) => formatKg(kgWeight || 0, unit);
 
   const toggleExpand = (id) => {
     setExpandedId(expandedId === id ? null : id);
@@ -78,13 +76,12 @@ export default function HistoryTracker({ unit = 'kg' }) {
       ) : (
         history.map((session) => {
           const isExpanded = expandedId === session.session_id;
-          const displayVolume = formatWeight(session.total_volume);
-          const dateFormatted = new Date(session.date_completed).toLocaleDateString('en-GB', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          });
+          const displayVolume = formatVolume(session.total_volume, unit);
+          // The day the workout was logged, in the time zone it was logged in.
+          const dateOptions = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+          const dateFormatted = session.local_date
+            ? formatLocalDate(session.local_date, 'en-GB', dateOptions)
+            : new Date(session.date_completed).toLocaleDateString('en-GB', dateOptions);
 
           return (
             <View key={session.session_id} style={styles.historyCard}>

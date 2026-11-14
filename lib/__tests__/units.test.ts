@@ -2,12 +2,18 @@ import {
   DISPLAY_STEP,
   KG_PER_LB,
   displayWeight,
+  convertEntry,
+  entryFromKg,
+  entryToKg,
+  formatVolume,
   formatWeight,
   fromKg,
   kgToLb,
   lbToKg,
   roundToStep,
   toKg,
+  type WeightEntry,
+  type WeightUnit,
 } from '../units';
 
 describe('constants', () => {
@@ -115,5 +121,57 @@ describe('formatWeight', () => {
   it('shows a dash for non-finite values', () => {
     expect(formatWeight(Number.NaN, 'kg')).toBe('—');
     expect(formatWeight(Number.POSITIVE_INFINITY, 'lb')).toBe('—');
+  });
+});
+
+describe('formatVolume', () => {
+  it('shows whole units in the chosen unit', () => {
+    expect(formatVolume(1234.6, 'kg')).toBe('1235');
+    expect(formatVolume(100, 'lb')).toBe('220');
+    expect(formatVolume(0, 'kg')).toBe('0');
+  });
+
+  it('shows 0 for a session without sets (NULL volume) or bad input', () => {
+    expect(formatVolume(null, 'kg')).toBe('0');
+    expect(formatVolume(undefined, 'lb')).toBe('0');
+    expect(formatVolume(Number.NaN, 'kg')).toBe('0');
+    expect(formatVolume(-0.2, 'kg')).toBe('0');
+  });
+});
+
+describe('weight entries', () => {
+  const toggle = (e: WeightEntry, from: WeightUnit, to: WeightUnit) => convertEntry(e, from, to);
+
+  it('shows a stored weight with display rounding and keeps the exact kg', () => {
+    const entry = entryFromKg(61.23496995, 'kg');
+    expect(entry.text).toBe('61.25');
+    expect(entryToKg(entry, 'kg')).toBe(61.23496995);
+  });
+
+  it('converts typed weights on a unit toggle, with display rounding', () => {
+    expect(toggle({ text: '135' }, 'lb', 'kg').text).toBe('61.25');
+    expect(toggle({ text: '100' }, 'kg', 'lb').text).toBe('220.5');
+    expect(toggle({ text: '60' }, 'kg', 'kg')).toEqual({ text: '60' });
+  });
+
+  it('never drifts when toggled back and forth, and saves the exact typed value', () => {
+    for (const lb of ['45', '95', '135', '185', '225', '315', '317.5']) {
+      let entry: WeightEntry = { text: lb };
+      for (let i = 0; i < 3; i++) entry = toggle(toggle(entry, 'lb', 'kg'), 'kg', 'lb');
+      expect(entry.text).toBe(lb);
+      expect(entryToKg(toggle(entry, 'lb', 'kg'), 'kg')).toBeCloseTo(Number(lb) * KG_PER_LB, 12);
+    }
+  });
+
+  it('uses the text once the user edits it', () => {
+    const converted = toggle({ text: '315' }, 'lb', 'kg'); // "143"
+    expect(entryToKg({ ...converted, text: '140' }, 'kg')).toBe(140);
+    expect(toggle({ ...converted, text: '140' }, 'kg', 'lb').text).toBe('308.5');
+  });
+
+  it('keeps text that is not a number, which saves as 0 (V1)', () => {
+    expect(toggle({ text: '' }, 'kg', 'lb')).toEqual({ text: '' });
+    expect(toggle({ text: 'abc' }, 'lb', 'kg')).toEqual({ text: 'abc' });
+    expect(entryToKg({ text: '' }, 'lb')).toBe(0);
   });
 });

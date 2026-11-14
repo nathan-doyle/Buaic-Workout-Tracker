@@ -56,3 +56,44 @@ export function formatWeight(kg: number, unit: WeightUnit): string {
   if (!Number.isFinite(kg)) return '—';
   return String(displayWeight(kg, unit));
 }
+
+/** A stored kg volume (weight × reps) in `unit`, rounded to a whole number. Missing → "0". */
+export function formatVolume(kg: number | null | undefined, unit: WeightUnit): string {
+  if (kg === null || kg === undefined || !Number.isFinite(kg)) return '0';
+  const rounded = Math.round(fromKg(kg, unit));
+  return String(rounded === 0 ? 0 : rounded);
+}
+
+/**
+ * A weight in an input field: the text as shown, plus the exact kg it was made from
+ * when the app filled it in (from history, or by converting on a unit toggle).
+ * While the text is unchanged the exact value is used, so toggling units back and
+ * forth never drifts (315 lb → 143 kg → 315 lb) and an untouched value saves exactly.
+ */
+export interface WeightEntry {
+  text: string;
+  exactKg?: number;
+  /** The text `exactKg` was rendered as; once the user edits the text, it no longer applies. */
+  exactText?: string;
+}
+
+/** An entry showing a stored kg weight in `unit`. */
+export function entryFromKg(kg: number, unit: WeightUnit): WeightEntry {
+  const text = formatWeight(kg, unit);
+  return { text, exactKg: kg, exactText: text };
+}
+
+/** The entry's weight in kg (full precision); text that isn't a number counts as 0 (V1 behaviour). */
+export function entryToKg(entry: WeightEntry, unit: WeightUnit): number {
+  if (entry.exactKg !== undefined && entry.exactText === entry.text) return entry.exactKg;
+  const value = parseFloat(entry.text);
+  return Number.isFinite(value) ? toKg(value, unit) : 0;
+}
+
+/** The entry re-expressed in `to` (on a unit toggle). Text that isn't a number is kept. */
+export function convertEntry(entry: WeightEntry, from: WeightUnit, to: WeightUnit): WeightEntry {
+  if (from === to) return entry;
+  const exact = entry.exactKg !== undefined && entry.exactText === entry.text;
+  if (!exact && !Number.isFinite(parseFloat(entry.text))) return entry;
+  return entryFromKg(entryToKg(entry, from), to);
+}

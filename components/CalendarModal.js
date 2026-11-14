@@ -17,12 +17,14 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { getCalendarActivity } from '../db/database';
+import { useSettings } from '../features/settings/settingsStore';
 
 export default function CalendarModal({ visible, onClose }) {
   // ==========================================
   // STATE MANAGEMENT
   // ==========================================
   const [activityMap, setActivityMap] = useState({});
+  const { weekStart } = useSettings();
   const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
@@ -40,17 +42,19 @@ export default function CalendarModal({ visible, onClose }) {
     'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
   ];
 
-  // Week header labels starting on Monday
-  const weekDays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  // Week header labels (V2: week start is a setting, default Monday as in V1)
+  const weekDays = weekStart === 'sunday'
+    ? ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+    : ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
   // ==========================================
   // GRID CALCULATION (MTWTFSS MONDAY ALIGNMENT)
   // ==========================================
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   
-  // Shift standard Sunday-start index (0) to Monday-start index (0 to 6)
+  // Column of the 1st: JS days are Sunday = 0; shift for a Monday start
   const jsDay = new Date(year, month, 1).getDay();
-  const firstDayIndex = jsDay === 0 ? 6 : jsDay - 1;
+  const firstDayIndex = weekStart === 'sunday' ? jsDay : (jsDay + 6) % 7;
 
   // Build day grid with null placeholders for leading empty slots
   const daysArray = [];

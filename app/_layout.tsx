@@ -6,6 +6,7 @@ import * as Notifications from 'expo-notifications';
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { DatabaseGate } from '../features/startup/DatabaseGate';
 import { WorkoutProvider } from '../features/workout/WorkoutProvider';
 import { colors } from '../theme';
 
@@ -38,14 +39,29 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider value={navigationTheme}>
-        <WorkoutProvider>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.background },
-            }}
-          />
-        </WorkoutProvider>
+        {/* Opens and migrates the database first; shows "Your data is safe" if that fails. */}
+        <DatabaseGate>
+          <WorkoutProvider>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.background },
+              }}
+            >
+              <Stack.Screen
+                name="settings"
+                options={{
+                  headerShown: true,
+                  title: 'Settings',
+                  headerStyle: { backgroundColor: colors.background },
+                  headerTintColor: colors.accent,
+                  headerTitleStyle: { color: colors.textPrimary },
+                  headerShadowVisible: false,
+                }}
+              />
+            </Stack>
+          </WorkoutProvider>
+        </DatabaseGate>
       </ThemeProvider>
     </SafeAreaProvider>
   );

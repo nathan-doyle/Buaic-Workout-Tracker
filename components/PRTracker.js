@@ -10,6 +10,9 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView } from 'react-native';
 import { getBig3PRs } from '../db/database';
+import { formatLocalDate } from '../lib/dates';
+import { epleyE1rm } from '../lib/e1rm';
+import { formatWeight as formatKg } from '../lib/units';
 
 export default function PRTracker({ unit = 'kg' }) {
   // ==========================================
@@ -26,12 +29,8 @@ export default function PRTracker({ unit = 'kg' }) {
     setPrs(data);
   };
 
-  const roundToHalf = (num) => Math.round(num * 2) / 2;
-
-  const formatWeight = (kgWeight) => {
-    if (!kgWeight) return 0;
-    return unit === 'lb' ? Math.round(kgWeight * 2.20462) : roundToHalf(kgWeight);
-  };
+  // V2 Phase 2: exact conversion, display rounding kg 0.25 / lb 0.5 (lib/units).
+  const formatWeight = (kgWeight) => formatKg(kgWeight || 0, unit);
 
   // Strictly check for Big 3 compound movements
   const isStrictBig3 = (exerciseName = '') => {
@@ -68,11 +67,9 @@ export default function PRTracker({ unit = 'kg' }) {
         sortedPRs.map((item) => {
           const displayWeight = formatWeight(item.weight);
           const show1RM = isStrictBig3(item.name);
-          // Epley Formula for 1RM: Weight * (1 + reps / 30)
-          const raw1RM = displayWeight * (1 + item.reps / 30);
-          const est1RM = show1RM
-            ? (unit === 'lb' ? Math.round(raw1RM) : roundToHalf(raw1RM))
-            : null;
+          // Epley from the stored kg (lib/e1rm: only for 1–12 reps, else no estimate)
+          const e1rmKg = show1RM ? epleyE1rm(item.weight, item.reps) : null;
+          const est1RM = e1rmKg === null ? null : formatKg(e1rmKg, unit);
 
           return (
             <View
@@ -93,7 +90,7 @@ export default function PRTracker({ unit = 'kg' }) {
                   </Text>
                 </View>
                 <Text style={styles.dateText}>
-                  {item.date ? new Date(item.date).toLocaleDateString() : 'Logged'}
+                  {item.date ? formatLocalDate(item.date) : 'Logged'}
                 </Text>
               </View>
 
@@ -111,8 +108,8 @@ export default function PRTracker({ unit = 'kg' }) {
                   <View style={styles.statBox}>
                     <Text style={styles.statLabel}>EST. 1RM</Text>
                     <Text style={styles.statValueGold}>
-                      {est1RM}
-                      <Text style={styles.unitTextGold}>{unit}</Text>
+                      {est1RM ?? '—'}
+                      {est1RM !== null && <Text style={styles.unitTextGold}>{unit}</Text>}
                     </Text>
                   </View>
                 )}

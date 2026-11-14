@@ -7,6 +7,7 @@
  */
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 
 import { useWorkout } from '../workout/WorkoutProvider';
@@ -38,6 +39,16 @@ export default function ShellTabBar({
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <TouchableOpacity style={styles.calendarBtn} onPress={onOpenCalendar}>
             <Text style={{ fontSize: 16 }}>📅</Text>
+          </TouchableOpacity>
+
+          {/* V2 Phase 2: Settings (unit, week start, rest, backup). Icon set is a Phase 5 decision. */}
+          <TouchableOpacity
+            style={styles.calendarBtn}
+            onPress={() => router.push('/settings')}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+          >
+            <Text style={styles.settingsGlyph}>⚙︎</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -109,6 +120,10 @@ const styles = StyleSheet.create({
     color: '#A0A0A0',
     fontSize: 10,
     letterSpacing: 2,
+  },
+  settingsGlyph: {
+    fontSize: 17,
+    color: '#A0A0A0',
   },
   calendarBtn: {
     width: 34,

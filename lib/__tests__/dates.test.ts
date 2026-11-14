@@ -2,9 +2,11 @@ import {
   addDays,
   dayOfWeek,
   daysBetween,
+  formatLocalDate,
   isLocalDateString,
   localDateString,
   startOfWeek,
+  todayLocalDate,
   tzOffsetMinutesOf,
 } from '../dates';
 
@@ -144,5 +146,26 @@ describe('daysBetween', () => {
 
   it('rejects bad input', () => {
     expect(() => daysBetween('2026-11-14', 'x')).toThrow(RangeError);
+  });
+});
+
+describe('todayLocalDate', () => {
+  it("is the device's local date of the instant", () => {
+    const now = new Date('2026-11-14T12:00:00Z');
+    expect(todayLocalDate(now)).toBe(localDateString(now, tzOffsetMinutesOf(now)));
+    expect(isLocalDateString(todayLocalDate())).toBe(true);
+  });
+});
+
+describe('formatLocalDate', () => {
+  it('formats the stored day, whatever the device time zone', () => {
+    const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' } as const;
+    expect(formatLocalDate('2026-03-29', 'en-GB', options)).toBe(new Date(2026, 2, 29, 12).toLocaleDateString('en-GB', options));
+    expect(formatLocalDate('2026-03-29', 'en-GB', options)).toContain('29 Mar 2026');
+    expect(formatLocalDate('2026-01-01', 'en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' })).toBe('01/01/2026');
+  });
+
+  it('rejects malformed dates', () => {
+    expect(() => formatLocalDate('2026-02-30')).toThrow(RangeError);
   });
 });

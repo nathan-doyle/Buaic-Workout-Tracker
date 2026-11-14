@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import CalendarModal from '../../components/CalendarModal';
 import RestTimer from '../../components/RestTimer';
 import WorkoutSummaryModal from '../../components/WorkoutSummaryModal';
+import { useSettings } from '../../features/settings/settingsStore';
 import ShellTabBar from '../../features/shell/ShellTabBar';
 import { useWorkout } from '../../features/workout/WorkoutProvider';
 import { colors } from '../../theme';
@@ -22,6 +23,7 @@ import { colors } from '../../theme';
 export default function TabsLayout() {
   const { unit, showRestTimer, closeRestTimer, summaryData, showSummaryModal, closeSummary } =
     useWorkout();
+  const { defaultRestSeconds } = useSettings();
   const [showCalendar, setShowCalendar] = useState(false);
 
   return (
@@ -46,7 +48,7 @@ export default function TabsLayout() {
       </Tabs>
 
       {/* Background Floating Rest Timer */}
-      {showRestTimer && <RestTimer initialSeconds={90} onClose={closeRestTimer} />}
+      {showRestTimer && <RestTimer initialSeconds={defaultRestSeconds} onClose={closeRestTimer} />}
 
       {/* Monthly Activity Calendar Modal */}
       <CalendarModal visible={showCalendar} onClose={() => setShowCalendar(false)} />
