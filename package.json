@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo/ui": "~58.0.28",
     "@expo/vector-icons": "^15.0.2",
     "expo": "^58.0.25",
     "expo-asset": "~58.0.21",
@@ -23,6 +24,7 @@
     "expo-status-bar": "~58.0.5",
     "expo-store-review": "~58.0.3",
     "expo-system-ui": "~58.0.7",
+    "expo-widgets": "~58.0.28",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",

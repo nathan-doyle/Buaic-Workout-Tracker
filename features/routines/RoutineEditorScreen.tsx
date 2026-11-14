@@ -18,6 +18,7 @@ import { openExercisePicker } from '../library/pickExercise';
 import { useSettings } from '../settings/settingsStore';
 import ActionSheet from '../ui/ActionSheet';
 import { activeWorkout, routineTemplates, useActiveWorkoutState } from '../workout/activeWorkout';
+import { requestWidgetUpdate } from '../widgets/widgetSync';
 
 type Item = Pick<RoutineExercise, 'exerciseId' | 'name' | 'variation' | 'muscle' | 'targetSets' | 'repMin' | 'repMax' | 'restSeconds' | 'notes'>;
 
@@ -61,6 +62,7 @@ export default function RoutineEditorScreen() {
     }
     try {
       setRoutineExercises(getDb(), routineId, items);
+      requestWidgetUpdate();
     } catch (error) {
       console.error('Saving routine failed:', error);
       Alert.alert('Could not save the routine');
@@ -73,6 +75,7 @@ export default function RoutineEditorScreen() {
   const saveName = () => {
     try {
       renameRoutine(getDb(), routineId, name);
+      requestWidgetUpdate();
     } catch (error) {
       console.error('Renaming routine failed:', error);
     }

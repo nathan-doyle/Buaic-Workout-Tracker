@@ -14,6 +14,7 @@ import { filterExercises } from '../../lib/exerciseSearch';
 import { colors, radii, spacing, typography } from '../../theme';
 import { Icon } from '../ui/Icon';
 import ActionSheet, { type SheetAction } from '../ui/ActionSheet';
+import { requestWidgetUpdate } from '../widgets/widgetSync';
 
 export default function LibraryScreen() {
   const router = useRouter();
@@ -49,6 +50,7 @@ export default function LibraryScreen() {
         console.error('Library action failed:', error);
         Alert.alert('Something went wrong');
       }
+      requestWidgetUpdate();
       reload();
     };
     const list: SheetAction[] = [];

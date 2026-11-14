@@ -29,6 +29,7 @@ import { colors, maxFontScale, radii, spacing, touchTarget, typography } from '.
 import { settingsStore, useSettings } from '../settings/settingsStore';
 import { haptics } from '../ui/haptics';
 import { Icon } from '../ui/Icon';
+import { requestWidgetUpdate } from '../widgets/widgetSync';
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -42,6 +43,7 @@ export default function OnboardingScreen() {
       for (const [key, value] of onboardingWrites(state, completed)) settingsStore.set(key, value as never);
       const plan = planToApply(state, completed);
       if (plan !== 'keep') applyStarterPlan(getDb(), plan);
+      requestWidgetUpdate();
     } catch (error) {
       // Settings or routines couldn't be saved; the app still works with the defaults.
       Alert.alert('Not saved', error instanceof Error ? error.message : String(error));

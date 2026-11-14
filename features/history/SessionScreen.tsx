@@ -24,6 +24,7 @@ import { colors, radii, spacing, touchTarget, typography } from '../../theme';
 import { Icon, type IconKey } from '../ui/Icon';
 import { useSettings } from '../settings/settingsStore';
 import { activeWorkout } from '../workout/activeWorkout';
+import { requestWidgetUpdate } from '../widgets/widgetSync';
 
 const TYPE_LETTER: Record<string, string> = { warmup: 'W', working: '', drop: 'D', failure: 'F' };
 const TYPE_NAME: Record<string, string> = { warmup: 'Warm-up', working: 'Working', drop: 'Drop', failure: 'Failure' };
@@ -68,6 +69,7 @@ export default function SessionScreen({ sessionId }: { sessionId: number }) {
   }, [draft, cancelEdit]);
 
   const afterChange = () => {
+    requestWidgetUpdate();
     try {
       activeWorkout.reloadHistory();
     } catch (error) {

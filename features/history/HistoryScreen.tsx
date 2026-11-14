@@ -26,6 +26,7 @@ import { useSettings } from '../settings/settingsStore';
 import ActionSheet, { type SheetAction } from '../ui/ActionSheet';
 import { Icon } from '../ui/Icon';
 import { activeWorkout } from '../workout/activeWorkout';
+import { requestWidgetUpdate } from '../widgets/widgetSync';
 
 type Filter = { kind: 'all' } | { kind: 'routine'; id: number; name: string } | { kind: 'exercise'; id: number; name: string };
 
@@ -64,6 +65,7 @@ export default function HistoryScreen() {
             if (deleteCompletedSession(getDb(), s.id)) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
               activeWorkout.reloadHistory();
+              requestWidgetUpdate();
             }
           } catch (error) {
             console.error('Deleting workout failed:', error);

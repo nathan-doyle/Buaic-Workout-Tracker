@@ -12,6 +12,7 @@ import { createRoutine, duplicateRoutine, listRoutines, reorderRoutines, type Ro
 import { colors, radii, spacing, typography } from '../../theme';
 import { Icon, type IconKey } from '../ui/Icon';
 import ActionSheet from '../ui/ActionSheet';
+import { requestWidgetUpdate } from '../widgets/widgetSync';
 
 export default function RoutinesScreen() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function RoutinesScreen() {
       console.error(`${what} failed:`, error);
       Alert.alert(`Could not ${what.toLowerCase()}`);
     }
+    requestWidgetUpdate();
     reload();
   };
 

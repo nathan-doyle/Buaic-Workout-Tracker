@@ -66,7 +66,41 @@
       ],
       "./plugins/withShortCmakeObjectPaths",
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-widgets",
+        {
+          "bundleIdentifier": "com.buaic.ExpoWidgetsTarget",
+          "groupIdentifier": "group.com.buaic",
+          "enableAndroid": true,
+          "widgets": [
+            {
+              "name": "BuaicWidget",
+              "displayName": "Buaic",
+              "description": "This week’s workouts, your streak and the next routine.",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium"
+                ]
+              },
+              "android": {
+                "minWidth": 250,
+                "minHeight": 110,
+                "targetCellWidth": 4,
+                "targetCellHeight": 2,
+                "resizeMode": "both"
+              }
+            }
+          ]
+        }
+      ],
+      [
+        "./plugins/withWidgetDeepLink",
+        {
+          "widgetName": "BuaicWidget"
+        }
+      ]
     ],
     "extra": {
       "eas": {

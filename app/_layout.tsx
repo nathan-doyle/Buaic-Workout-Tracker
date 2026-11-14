@@ -11,11 +11,17 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { RestLiveActivity } from '../features/rest/RestLiveActivity';
 import { DatabaseGate } from '../features/startup/DatabaseGate';
 import { iconFont } from '../features/ui/Icon';
+import { WidgetSync } from '../features/widgets/widgetSync';
 import { WorkoutKeepAwake } from '../features/workout/WorkoutKeepAwake';
 import { WorkoutProvider } from '../features/workout/WorkoutProvider';
 import { colors } from '../theme';
+
+// A deep link opened on a cold start (the widget, the Live Activity) lands on top of
+// the tabs, so Back from it returns to the app instead of leaving it.
+export const unstable_settings = { anchor: '(tabs)' };
 
 // Keep the splash up until the icon font (bundled in the app, loaded from disk) is ready.
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -75,6 +81,9 @@ export default function RootLayout() {
           <DatabaseGate>
             <WorkoutProvider>
               <WorkoutKeepAwake />
+              {/* Phase 7: home-screen widget data and the iOS rest Live Activity. */}
+              <WidgetSync />
+              <RestLiveActivity />
               <Stack
                 screenOptions={{
                   headerShown: false,
@@ -95,6 +104,7 @@ export default function RootLayout() {
                 <Stack.Screen name="exercise/[id]" options={withHeader('Exercise')} />
                 <Stack.Screen name="session/[id]" options={{ headerShown: false }} />
                 <Stack.Screen name="calendar" options={withHeader('Calendar')} />
+                <Stack.Screen name="widget" options={{ animation: 'none', gestureEnabled: false }} />
               </Stack>
             </WorkoutProvider>
           </DatabaseGate>

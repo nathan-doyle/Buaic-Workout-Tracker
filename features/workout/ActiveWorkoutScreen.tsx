@@ -45,6 +45,7 @@ import { useSettings } from '../settings/settingsStore';
 import ActionSheet, { type SheetAction } from '../ui/ActionSheet';
 import { haptics } from '../ui/haptics';
 import { Icon, IconButton } from '../ui/Icon';
+import { requestWidgetUpdate } from '../widgets/widgetSync';
 import PlateSheet from './PlateSheet';
 import { activeWorkout, libraryTemplate, useActiveWorkoutState } from './activeWorkout';
 import { useWorkout } from './WorkoutProvider';
@@ -414,6 +415,7 @@ export default function ActiveWorkoutScreen() {
                     };
                   })
                 );
+                requestWidgetUpdate();
               } catch (error) {
                 console.error('Updating routine failed:', error);
                 Alert.alert('Could not update the routine');
