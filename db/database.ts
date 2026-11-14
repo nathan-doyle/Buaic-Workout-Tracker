@@ -18,7 +18,9 @@ import type { DbAdapter } from './adapter';
 import { expoAdapter } from './expoAdapter';
 import { MigrationError, type MigrationResult, migrateDatabase } from './migrate';
 import * as Q from './queries';
+import { createCustomExercise } from './routines';
 import { DATABASE_NAME, V1_BACKUP_NAME } from './schema';
+import { seedLibrary } from './library';
 import { seedDatabase } from './seed';
 import { ALL_MUSCLE_GROUPS } from './v1Constants';
 
@@ -99,6 +101,7 @@ export function startDatabase(): StartupResult {
 
     try {
       seedDatabase(db);
+      seedLibrary(db);
     } catch (error) {
       // Starter content is optional; user data is already safe and migrated.
       console.error('Seeding failed:', error);
@@ -129,37 +132,11 @@ function safely<T>(what: string, fallback: T, fn: (db: DbAdapter) => T): T {
   }
 }
 
-/** Adds an exercise to the library and to every split its muscle maps to (V1 behaviour). */
-export const addUniversalExercise = (name: string, variation: string | null | undefined, targetMuscle: string): boolean =>
-  safely('adding exercise', false, (db) => {
-    Q.addUniversalExercise(db, name, variation, targetMuscle, new Date());
-    return true;
-  });
-
-export const getExercisesBySplit = (split: string): Q.ExerciseRow[] =>
-  safely('fetching exercises by split', [], (db) => Q.getExercisesBySplit(db, split));
-
-/** Removes an exercise from every split. Its history is kept (it is archived, not deleted). */
-export const deleteExercise = (exerciseId: number): boolean =>
-  safely('removing exercise', false, (db) => {
-    Q.removeExercise(db, exerciseId, new Date());
-    return true;
-  });
-
-/** Saves a finished workout and its sets (weights in kg) in one transaction. */
-export const saveWorkoutSession = (
-  splitName: string,
-  notes: string | null | undefined,
-  setLogs: Q.SetLogInput[]
-): boolean =>
-  safely('saving workout session', false, (db) => {
-    const now = new Date();
-    Q.saveWorkoutSession(db, splitName, notes, setLogs, { now, tzOffsetMinutes: tzOffsetMinutesOf(now) });
-    return true;
-  });
-
-export const getLastExercisePerformance = (exerciseId: number): Q.PastSet | null =>
-  safely('fetching past performance', null, (db) => Q.getLastExercisePerformance(db, exerciseId));
+/** Adds a custom exercise to the library (or finds the existing one). Returns its id, or null on error. */
+export const createExercise = (name: string, variation: string | null | undefined, muscle: string): number | null =>
+  safely('adding exercise', null, (db) =>
+    createCustomExercise(db, { name, variation: variation || '', muscle }, new Date().toISOString())
+  );
 
 /** Heaviest set per exercise (the Top Sets tab). */
 export const getBig3PRs = (): Q.TopSetRow[] => safely('fetching top sets', [], (db) => Q.getTopSets(db));

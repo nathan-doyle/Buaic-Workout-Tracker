@@ -1,29 +1,27 @@
 /**
  * Tab shell with V1's four tabs. The shared BUAIC header and V1's segmented tab
- * row are the navigator's custom tab bar (at the top, as in V1); the rest timer,
- * calendar and workout summary sit above every tab, as in V1's `App.js`.
+ * row are the navigator's custom tab bar (at the top, as in V1). Below the tabs, in
+ * the layout flow: a "workout in progress" bar and the rest timer (Phase 3).
  *
- * Uses expo-router's JS tabs, not native tabs: V1's floating rest timer must stay
- * visible above the tab bar on every tab, and a native tab bar's height can't be
- * measured. See V2_PROGRESS.md → Decisions (Phase 1b).
+ * Uses expo-router's JS tabs, not native tabs; see V2_PROGRESS.md → Decisions.
  */
 import React, { useState } from 'react';
-import { StyleSheet } from 'react-native';
-import { Tabs } from 'expo-router/js-tabs';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CalendarModal from '../../components/CalendarModal';
-import RestTimer from '../../components/RestTimer';
 import WorkoutSummaryModal from '../../components/WorkoutSummaryModal';
-import { useSettings } from '../../features/settings/settingsStore';
+import RestBar from '../../features/rest/RestBar';
 import ShellTabBar from '../../features/shell/ShellTabBar';
+import { useActiveWorkoutState } from '../../features/workout/activeWorkout';
 import { useWorkout } from '../../features/workout/WorkoutProvider';
-import { colors } from '../../theme';
+import { colors, radii, spacing, typography } from '../../theme';
 
 export default function TabsLayout() {
-  const { unit, showRestTimer, closeRestTimer, summaryData, showSummaryModal, closeSummary } =
-    useWorkout();
-  const { defaultRestSeconds } = useSettings();
+  const { unit, summaryData, showSummaryModal, closeSummary } = useWorkout();
+  const { session } = useActiveWorkoutState();
+  const router = useRouter();
   const [showCalendar, setShowCalendar] = useState(false);
 
   return (
@@ -31,9 +29,7 @@ export default function TabsLayout() {
       <Tabs
         // V1 had no tab history: Android back leaves the app from any tab.
         backBehavior="none"
-        tabBar={(props) => (
-          <ShellTabBar {...props} onOpenCalendar={() => setShowCalendar(true)} />
-        )}
+        tabBar={(props) => <ShellTabBar {...props} onOpenCalendar={() => setShowCalendar(true)} />}
         screenOptions={{
           headerShown: false,
           tabBarPosition: 'top',
@@ -47,19 +43,25 @@ export default function TabsLayout() {
         <Tabs.Screen name="history" options={{ title: 'HISTORY' }} />
       </Tabs>
 
-      {/* Background Floating Rest Timer */}
-      {showRestTimer && <RestTimer initialSeconds={defaultRestSeconds} onClose={closeRestTimer} />}
+      {session && (
+        <Pressable
+          style={styles.workoutBar}
+          onPress={() => router.push('/workout')}
+          accessibilityRole="button"
+          accessibilityLabel={`Open workout in progress, ${session.name}`}
+        >
+          <Text style={styles.workoutBarLabel}>WORKOUT IN PROGRESS</Text>
+          <Text style={styles.workoutBarName} numberOfLines={1}>{session.name}</Text>
+          <Text style={styles.workoutBarOpen}>Open ⌃</Text>
+        </Pressable>
+      )}
+      <RestBar onPress={session ? () => router.push('/workout') : undefined} />
 
       {/* Monthly Activity Calendar Modal */}
       <CalendarModal visible={showCalendar} onClose={() => setShowCalendar(false)} />
 
       {/* Post-Workout Summary Recap & Share Card */}
-      <WorkoutSummaryModal
-        visible={showSummaryModal}
-        summaryData={summaryData}
-        unit={unit}
-        onClose={closeSummary}
-      />
+      <WorkoutSummaryModal visible={showSummaryModal} summaryData={summaryData} unit={unit} onClose={closeSummary} />
     </SafeAreaView>
   );
 }
@@ -74,4 +76,19 @@ const styles = StyleSheet.create({
   scene: {
     backgroundColor: colors.background,
   },
+  workoutBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 48,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface2,
+    borderTopWidth: 1,
+    borderColor: colors.accent,
+    borderTopLeftRadius: radii.md,
+    borderTopRightRadius: radii.md,
+  },
+  workoutBarLabel: { ...typography.label, fontSize: 9, color: colors.accent },
+  workoutBarName: { ...typography.bodyStrong, color: colors.textPrimary, flex: 1 },
+  workoutBarOpen: { ...typography.bodyStrong, color: colors.accent },
 });

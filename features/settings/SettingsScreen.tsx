@@ -143,6 +143,43 @@ export default function SettingsScreen() {
         }))}
       />
 
+
+      <OnOff label="START REST TIMER WHEN A SET IS TICKED" value={settings.autoStartRest} onChange={(v) => save('autoStartRest', v)} />
+      <OnOff label="REST-OVER SOUND" value={settings.restSound} onChange={(v) => save('restSound', v)} />
+      <OnOff label="REST-OVER VIBRATION" value={settings.restVibrate} onChange={(v) => save('restVibrate', v)} />
+      <OnOff label="PROGRESSION HINTS" value={settings.progressionHints} onChange={(v) => save('progressionHints', v)} />
+      <OnOff label="RPE COLUMN" value={settings.showRpe} onChange={(v) => save('showRpe', v)} />
+      {settings.unit === 'kg' ? (
+        <>
+          <Segmented
+            label="WEIGHT STEP (KG)"
+            value={settings.incrementKg}
+            onChange={(v) => save('incrementKg', v)}
+            options={[1, 1.25, 2.5, 5].map((v) => ({ value: v, label: String(v) }))}
+          />
+          <Segmented
+            label="BAR (KG)"
+            value={settings.barKg}
+            onChange={(v) => save('barKg', v)}
+            options={[10, 15, 20, 25].map((v) => ({ value: v, label: String(v) }))}
+          />
+        </>
+      ) : (
+        <>
+          <Segmented
+            label="WEIGHT STEP (LB)"
+            value={settings.incrementLb}
+            onChange={(v) => save('incrementLb', v)}
+            options={[2.5, 5, 10].map((v) => ({ value: v, label: String(v) }))}
+          />
+          <Segmented
+            label="BAR (LB)"
+            value={settings.barLb}
+            onChange={(v) => save('barLb', v)}
+            options={[25, 35, 45].map((v) => ({ value: v, label: String(v) }))}
+          />
+        </>
+      )}
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>BACKUP</Text>
         <Pressable
@@ -223,3 +260,17 @@ const styles = StyleSheet.create({
   note: { ...typography.caption, color: colors.textTertiary, lineHeight: 18 },
   version: { ...typography.caption, color: colors.textTertiary, textAlign: 'center' },
 });
+
+function OnOff({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <Segmented
+      label={label}
+      value={value ? 'on' : 'off'}
+      onChange={(v) => onChange(v === 'on')}
+      options={[
+        { value: 'on', label: 'ON' },
+        { value: 'off', label: 'OFF' },
+      ]}
+    />
+  );
+}

@@ -334,7 +334,7 @@ export function getTopSets(db: DbAdapter): TopSetRow[] {
 
 /**
  * Coverage per muscle over the last 7 local days including `today`:
- * red = no active exercise for it, grey = none logged, gold = 1+ sets.
+ * red = in no active routine (V1: in no split), grey = none logged, gold = 1+ sets.
  */
 export function getMuscleCoverage(
   db: DbAdapter,
@@ -343,7 +343,11 @@ export function getMuscleCoverage(
 ): Record<string, MuscleCoverage> {
   const existing = new Set(
     db
-      .all<{ muscle: string }>('SELECT DISTINCT primary_muscle AS muscle FROM exercises WHERE archived_at IS NULL')
+      .all<{ muscle: string }>(
+        `SELECT DISTINCT e.primary_muscle AS muscle FROM routine_exercises re
+         JOIN routines r ON r.id = re.routine_id AND r.archived_at IS NULL
+         JOIN exercises e ON e.id = re.exercise_id AND e.archived_at IS NULL`
+      )
       .map((r) => r.muscle)
   );
   const recent = new Map(

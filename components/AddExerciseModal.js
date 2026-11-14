@@ -4,7 +4,8 @@
  * File: components/AddExerciseModal.js
  * Purpose: Modal dialog for adding custom exercises. Provides an interactive,
  *          3-view anatomical silhouette (Front, Back, Side) allowing users to tap
- *          their target muscle directly. The exercise is then mapped into all matching splits.
+ *          their target muscle directly. V2 Phase 3: the exercise goes into the library and is
+ *          handed to `onExerciseAdded(id)` (the workout or routine it was added from).
  */
 
 import React, { useState } from 'react';
@@ -21,12 +22,12 @@ import {
   Platform,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { addUniversalExercise, MUSCLE_SPLIT_MAP } from '../db/database';
+import { createExercise } from '../db/database';
 
 // Hit slop expands the invisible tap perimeter around small muscle nodes for touch accuracy
 const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 
-export default function AddExerciseModal({ visible, onClose, onExerciseAdded }) {
+export default function AddExerciseModal({ visible, onClose, onExerciseAdded, destination = '' }) {
   // ==========================================
   // STATE MANAGEMENT
   // ==========================================
@@ -48,23 +49,23 @@ export default function AddExerciseModal({ visible, onClose, onExerciseAdded }) 
       return;
     }
 
-    const success = addUniversalExercise(
+    const newId = createExercise(
       name.trim(),
       variation.trim(),
       selectedMuscle
     );
 
-    if (success) {
+    if (newId !== null) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setName('');
       setVariation('');
-      onExerciseAdded();
+      onExerciseAdded(newId);
       onClose();
     }
   };
 
   // Automated split mappings for the selected muscle target
-  const mappedSplits = MUSCLE_SPLIT_MAP[selectedMuscle] || [];
+
 
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
@@ -469,15 +470,8 @@ export default function AddExerciseModal({ visible, onClose, onExerciseAdded }) 
                 SELECTED: <Text style={styles.goldText}>{selectedMuscle.toUpperCase()}</Text>
               </Text>
               <Text style={styles.autoSplitSub}>
-                Automatically added into these active splits:
+                {destination ? `Added to your library and to ${destination}.` : 'Added to your library.'}
               </Text>
-              <View style={styles.splitBadgeRow}>
-                {mappedSplits.map((sp) => (
-                  <View key={sp} style={styles.splitBadge}>
-                    <Text style={styles.splitBadgeText}>{sp}</Text>
-                  </View>
-                ))}
-              </View>
             </View>
           </ScrollView>
 

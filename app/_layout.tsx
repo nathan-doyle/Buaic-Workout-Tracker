@@ -1,9 +1,11 @@
 /**
- * Root layout: providers and the root stack. The tab shell lives in `(tabs)`.
+ * Root layout: providers and the root stack. The tab shell lives in `(tabs)`; the
+ * active workout, routines, exercise picker and settings are stack screens above it.
  */
 import React from 'react';
 import * as Notifications from 'expo-notifications';
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DatabaseGate } from '../features/startup/DatabaseGate';
@@ -35,34 +37,40 @@ const navigationTheme = {
   },
 };
 
+const withHeader = (title: string) => ({
+  headerShown: true,
+  title,
+  headerStyle: { backgroundColor: colors.background },
+  headerTintColor: colors.accent,
+  headerTitleStyle: { color: colors.textPrimary },
+  headerShadowVisible: false,
+});
+
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <ThemeProvider value={navigationTheme}>
-        {/* Opens and migrates the database first; shows "Your data is safe" if that fails. */}
-        <DatabaseGate>
-          <WorkoutProvider>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.background },
-              }}
-            >
-              <Stack.Screen
-                name="settings"
-                options={{
-                  headerShown: true,
-                  title: 'Settings',
-                  headerStyle: { backgroundColor: colors.background },
-                  headerTintColor: colors.accent,
-                  headerTitleStyle: { color: colors.textPrimary },
-                  headerShadowVisible: false,
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
+      <SafeAreaProvider>
+        <ThemeProvider value={navigationTheme}>
+          {/* Opens and migrates the database first; shows "Your data is safe" if that fails. */}
+          <DatabaseGate>
+            <WorkoutProvider>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: colors.background },
                 }}
-              />
-            </Stack>
-          </WorkoutProvider>
-        </DatabaseGate>
-      </ThemeProvider>
-    </SafeAreaProvider>
+              >
+                <Stack.Screen name="workout" options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
+                <Stack.Screen name="exercise-picker" options={withHeader('Exercises')} />
+                <Stack.Screen name="routines" options={withHeader('Routines')} />
+                <Stack.Screen name="routine/[id]" options={withHeader('Routine')} />
+                <Stack.Screen name="library" options={withHeader('Exercise library')} />
+                <Stack.Screen name="settings" options={withHeader('Settings')} />
+              </Stack>
+            </WorkoutProvider>
+          </DatabaseGate>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

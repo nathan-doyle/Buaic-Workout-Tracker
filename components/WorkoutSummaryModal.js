@@ -136,11 +136,18 @@ export default function WorkoutSummaryModal({ visible, summaryData, unit = 'kg',
                         ) : null}
                       </View>
                       <Text style={styles.exerciseDetail}>
-                        Top Set: {formatWeight(ex.topWeight)} {unit} × {ex.topReps} reps
+                        Top Set: {ex.topWeight > 0 ? `${formatWeight(ex.topWeight)} ${unit}` : 'BW'} × {ex.topReps} reps
                       </Text>
+                      {(summaryData.prs || [])
+                        .filter((pr) => pr.name === ex.name && pr.variation === ex.variation)
+                        .map((pr) => (
+                          <Text key={pr.label} style={[styles.exerciseDetail, { color: '#D4AF37' }]}>
+                            {`PR · ${pr.label}: ${formatWeight(pr.weight)} ${unit} × ${pr.reps}`}
+                          </Text>
+                        ))}
                     </View>
                     <View style={styles.setsCountBadge}>
-                      <Text style={styles.setsCountText}>{ex.completedSetsCount} sets</Text>
+                      <Text style={styles.setsCountText}>{ex.completedSetsCount} {ex.completedSetsCount === 1 ? 'set' : 'sets'}</Text>
                     </View>
                   </View>
                 ))}

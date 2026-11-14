@@ -1,3 +1,3 @@
-import WorkoutScreen from '../../features/workout/WorkoutScreen';
+import WorkoutHome from '../../features/workout/WorkoutHome';
 
-export default WorkoutScreen;
+export default WorkoutHome;

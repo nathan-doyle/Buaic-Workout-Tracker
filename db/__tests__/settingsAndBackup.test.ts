@@ -45,8 +45,8 @@ function freshV2(name: string): NodeDb {
 
 describe('settings', () => {
   it('defaults: kg, Monday, 90 s', () => {
-    expect(readSettings(migratedV1())).toEqual({ unit: 'kg', weekStart: 'monday', defaultRestSeconds: 90 });
-    expect(DEFAULT_SETTINGS).toEqual({ unit: 'kg', weekStart: 'monday', defaultRestSeconds: 90 });
+    expect(readSettings(migratedV1())).toMatchObject({ unit: 'kg', weekStart: 'monday', defaultRestSeconds: 90 });
+    expect(DEFAULT_SETTINGS).toMatchObject({ unit: 'kg', weekStart: 'monday', defaultRestSeconds: 90 });
   });
 
   it('persists values as JSON and reads them back', () => {
@@ -55,7 +55,11 @@ describe('settings', () => {
     writeSetting(db, 'weekStart', 'sunday');
     writeSetting(db, 'defaultRestSeconds', 120);
     writeSetting(db, 'unit', 'lb'); // upsert
-    expect(readSettings(db)).toEqual({ unit: 'lb', weekStart: 'sunday', defaultRestSeconds: 120 });
+    expect(readSettings(db)).toMatchObject({ unit: 'lb', weekStart: 'sunday', defaultRestSeconds: 120 });
+    writeSetting(db, 'platesKg', [20, 10, 1.25]);
+    writeSetting(db, 'autoStartRest', false);
+    expect(readSettings(db)).toMatchObject({ platesKg: [20, 10, 1.25], autoStartRest: false, restSound: true });
+    expect(() => writeSetting(db, 'incrementKg', 0)).toThrow(RangeError);
     expect(db.get("SELECT value FROM settings WHERE key = 'unit'")).toEqual({ value: '"lb"' });
   });
 
@@ -84,7 +88,7 @@ describe('settings', () => {
 
     const reloaded = createSettingsStore();
     reloaded.attach(db);
-    expect(reloaded.getSnapshot()).toEqual({ unit: 'lb', weekStart: 'monday', defaultRestSeconds: 60 });
+    expect(reloaded.getSnapshot()).toMatchObject({ unit: 'lb', weekStart: 'monday', defaultRestSeconds: 60 });
   });
 });
 
