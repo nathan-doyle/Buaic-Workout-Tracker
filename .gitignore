@@ -39,3 +39,20 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+
+# IDE & editor files
+.idea/
+
+# Tooling scratchpads
+.claude/
+CLAUDE.md
+AGENTS.md
+BUAIC_V2_PROMPT.md
+V2_PROGRESS.md
+builds/
+keystore-backup/
+
+# Build outputs
+*.apk
+*.aab

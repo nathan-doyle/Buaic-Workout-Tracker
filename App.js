@@ -19,6 +19,7 @@ import {
   Alert,
   Platform,
   Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 
 import * as Haptics from 'expo-haptics';
@@ -93,6 +94,7 @@ export default function App() {
       try {
         await Audio.setAudioModeAsync({
           playsInSilentModeIOS: true,
+          allowsRecordingIOS: false,
           staysActiveInBackground: false,
           shouldDuckAndroid: false,
           playThroughEarpieceAndroid: false,
@@ -101,7 +103,7 @@ export default function App() {
         console.log('Audio mode initialization error:', e);
       }
 
-      // iOS: Explicit permission prompt (required before scheduling alarms)
+      // iOS & Android 13+: Explicit runtime permission prompt (required before scheduling alarms)
       try {
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
@@ -257,7 +259,7 @@ export default function App() {
           setWorkoutData((prev) => {
             const currentSplitData = prev[selectedSplit] || {};
             const currentSets = currentSplitData[exerciseId] || [];
-            
+
             const updatedSets = currentSets
               .filter((_, i) => i !== index)
               .map((s, idx) => ({ ...s, setNumber: idx + 1 }));
@@ -504,7 +506,11 @@ export default function App() {
       ) : activeTab === 'history' ? (
         <HistoryTracker unit={unit} />
       ) : (
-        <View style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+        >
           {/* Split Dropdown Trigger */}
           <View style={styles.splitSelectorContainer}>
             <TouchableOpacity
@@ -517,7 +523,11 @@ export default function App() {
           </View>
 
           {/* Exercise Table Cards */}
-          <ScrollView style={styles.scrollList}>
+          <ScrollView
+            style={styles.scrollList}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             {currentExercises.map((item) => {
               const bestPastSet = historyData[item.id];
               let targetText = '—';
@@ -582,6 +592,7 @@ export default function App() {
                       <TextInput
                         style={styles.input}
                         keyboardType="numeric"
+                        returnKeyType="done"
                         value={setRow.weight}
                         onChangeText={(val) => updateSetData(item.id, index, 'weight', val)}
                       />
@@ -589,6 +600,7 @@ export default function App() {
                       <TextInput
                         style={styles.input}
                         keyboardType="numeric"
+                        returnKeyType="done"
                         value={setRow.reps}
                         onChangeText={(val) => updateSetData(item.id, index, 'reps', val)}
                       />
@@ -617,7 +629,7 @@ export default function App() {
               <Text style={styles.finishBtnText}>FINISH WORKOUT</Text>
             </TouchableOpacity>
           </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
       )}
 
       {/* ==========================================
@@ -689,7 +701,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F0F0F',
-    paddingTop: 50,
+    // SafeAreaView automatically handles top notch inset on iOS; Android requires explicit padding
+    paddingTop: Platform.OS === 'android' ? 50 : 10,
   },
   headerContainer: {
     flexDirection: 'row',

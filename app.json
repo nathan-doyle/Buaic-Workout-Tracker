@@ -11,6 +11,18 @@
       "resizeMode": "contain",
       "backgroundColor": "#0F0F0F"
     },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.buaic",
+      "buildNumber": "1",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
     "android": {
       "package": "com.buaic",
       "adaptiveIcon": {
@@ -26,6 +38,7 @@
       ]
     },
     "plugins": [
+      "expo-sqlite",
       [
         "expo-notifications",
         {
@@ -33,6 +46,11 @@
           "color": "#D4AF37"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7b406ed5-a625-4f79-81f6-c4fc81dfac40"
+      }
+    }
   }
 }
