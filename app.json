@@ -2,6 +2,7 @@
   "expo": {
     "name": "Buaic",
     "slug": "buaic-workout-tracker",
+    "scheme": "buaic",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -63,7 +64,8 @@
           "imageWidth": 200
         }
       ],
-      "./plugins/withShortCmakeObjectPaths"
+      "./plugins/withShortCmakeObjectPaths",
+      "expo-router"
     ],
     "extra": {
       "eas": {
