@@ -17,9 +17,11 @@ export interface BodyMapProps {
   missing: ReadonlySet<string>;
   selected: string | null;
   onSelect: (muscle: string) => void;
+  /** Press and hold a muscle (the new-exercise sheet: add/remove a secondary muscle). */
+  onLongSelect?: (muscle: string) => void;
 }
 
-function Figure({ side, levels, missing, selected, onSelect }: BodyMapProps & { side: Side }) {
+function Figure({ side, levels, missing, selected, onSelect, onLongSelect }: BodyMapProps & { side: Side }) {
   const regions = REGIONS[side];
   const half = (mirror: boolean) => (
     <G transform={mirror ? 'translate(200,0) scale(-1,1)' : undefined}>
@@ -40,6 +42,8 @@ function Figure({ side, levels, missing, selected, onSelect }: BodyMapProps & { 
             strokeDasharray={isMissing && !isSelected ? '3,2' : undefined}
             strokeLinejoin="round"
             onPress={() => onSelect(r.muscle)}
+            onLongPress={onLongSelect ? () => onLongSelect(r.muscle) : undefined}
+            delayLongPress={onLongSelect ? 400 : undefined}
           />
         );
       })}

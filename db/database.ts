@@ -130,9 +130,14 @@ function safely<T>(what: string, fallback: T, fn: (db: DbAdapter) => T): T {
 }
 
 /** Adds a custom exercise to the library (or finds the existing one). Returns its id, or null on error. */
-export const createExercise = (name: string, variation: string | null | undefined, muscle: string): number | null =>
+export const createExercise = (
+  name: string,
+  variation: string | null | undefined,
+  muscle: string,
+  secondary: readonly string[] = []
+): number | null =>
   safely('adding exercise', null, (db) =>
-    createCustomExercise(db, { name, variation: variation || '', muscle }, new Date().toISOString())
+    createCustomExercise(db, { name, variation: variation || '', muscle, secondary }, new Date().toISOString())
   );
 
 // Phase 4: History, Top Sets, Coverage and the Calendar read `db/history.ts` and

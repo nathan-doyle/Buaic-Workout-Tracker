@@ -1,5 +1,5 @@
 import { addTemplate, LIBRARY, seedLibrary, TEMPLATES } from '../library';
-import { getRoutineExercises, listExercises, listRoutines } from '../routines';
+import { cleanSecondaryMuscles, createCustomExercise, getRoutineExercises, listExercises, listRoutines } from '../routines';
 import type { NodeDb } from '../testing/nodeSqliteAdapter';
 import { createFreshV2Database } from '../testing/v2Fixture';
 import { ALL_MUSCLE_GROUPS } from '../v1Constants';
@@ -48,6 +48,50 @@ describe('exercise library seed', () => {
     });
     expect(seedLibrary(db)).toBe(0);
     expect(count()).toBe(before + inserted);
+  });
+
+  it("never lists an exercise's main muscle as secondary", () => {
+    for (const e of LIBRARY.exercises) expect(e.secondary).not.toContain(e.muscle);
+  });
+
+  it('library v2 fills secondary muscles on an install seeded with v1, never overwriting or listing the main muscle', () => {
+    seedLibrary(db);
+    const sec = (name: string, variation: string) =>
+      JSON.parse(db.get<{ s: string }>('SELECT secondary_muscles AS s FROM exercises WHERE name = ? AND variation = ?', [name, variation])!.s);
+    // The v1 library had no secondary muscles for these.
+    for (const [n, v] of [['Cable Crunch', 'Cable'], ['Crunch', ''], ['Seated Leg Curl', 'Machine']]) {
+      db.run(`UPDATE exercises SET secondary_muscles = '[]' WHERE name = ? AND variation = ?`, [n, v]);
+    }
+    db.run(`UPDATE exercises SET primary_muscle = 'Obliques' WHERE name = 'Crunch' AND variation = ''`); // a user's own main muscle
+    db.run(`UPDATE exercises SET secondary_muscles = '["Glutes"]' WHERE name = 'Seated Leg Curl'`); // a user's own choice
+    db.run(`UPDATE settings SET value = '1' WHERE key = 'library_seeded_version'`);
+
+    expect(LIBRARY.version).toBe(2);
+    expect(seedLibrary(db)).toBe(0);
+    expect(sec('Cable Crunch', 'Cable')).toEqual(['Obliques']);
+    expect(sec('Crunch', '')).toEqual([]);
+    expect(sec('Seated Leg Curl', 'Machine')).toEqual(['Glutes']);
+    expect(JSON.parse(db.get<{ value: string }>(`SELECT value FROM settings WHERE key = 'library_seeded_version'`)!.value)).toBe(2);
+  });
+});
+
+describe('custom exercise secondary muscles', () => {
+  const NOW = '2026-11-14T12:00:00.000Z';
+  const sec = (id: number) => JSON.parse(db.get<{ s: string }>('SELECT secondary_muscles AS s FROM exercises WHERE id = ?', [id])!.s);
+
+  it('stores them cleaned: known muscles, no duplicates, never the main muscle', () => {
+    const id = createCustomExercise(db, { name: 'Landmine Row', variation: '', muscle: 'Lats', secondary: ['Biceps', 'Lats', 'Biceps', 'Wings', 'Upper Back'] }, NOW);
+    expect(sec(id)).toEqual(['Biceps', 'Upper Back']);
+    expect(cleanSecondaryMuscles(['Quads', 'Glutes'], 'Quads')).toEqual(['Glutes']);
+  });
+
+  it('fills an existing exercise that has none, but never replaces the ones it has', () => {
+    const id = createCustomExercise(db, { name: 'Zercher Squat', variation: '', muscle: 'Quads' }, NOW);
+    expect(sec(id)).toEqual([]);
+    expect(createCustomExercise(db, { name: 'zercher squat', variation: '', muscle: 'Quads', secondary: ['Glutes', 'Abs'] }, NOW)).toBe(id);
+    expect(sec(id)).toEqual(['Glutes', 'Abs']);
+    expect(createCustomExercise(db, { name: 'Zercher Squat', variation: '', muscle: 'Quads', secondary: ['Upper Back'] }, NOW)).toBe(id);
+    expect(sec(id)).toEqual(['Glutes', 'Abs']);
   });
 });
 

@@ -168,7 +168,7 @@ export function getCalendarDays(db: DbAdapter): Record<string, CalendarDayInfo> 
     const day = e.localDate ? days[e.localDate] : undefined;
     if (!day) continue;
     day.hasPr = true;
-    if (isBig3(e.name)) day.hasBig3Pr = true;
+    if (isBig3(e.name, e.variation)) day.hasBig3Pr = true;
   }
   return days;
 }

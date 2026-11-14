@@ -8,7 +8,7 @@
 import { type DbAdapter, transaction } from './adapter';
 import library from './exerciseLibrary.json';
 import { ensureExercise } from './queries';
-import { createRoutine, writeRoutineExercises } from './routines';
+import { cleanSecondaryMuscles, createRoutine, writeRoutineExercises } from './routines';
 import { MUSCLE_SPLIT_MAP, V1_DEFAULT_EXERCISES, V1_SPLITS } from './v1Constants';
 
 export const LIBRARY_VERSION_KEY = 'library_seeded_version';
@@ -31,16 +31,18 @@ export function seedLibrary(db: DbAdapter, now: Date = new Date()): number {
     const nowIso = now.toISOString();
     let inserted = 0;
     for (const e of LIBRARY.exercises) {
-      const existing = db.get<{ id: number }>(
-        'SELECT id FROM exercises WHERE LOWER(name) = LOWER(?) AND LOWER(variation) = LOWER(?)',
+      const existing = db.get<{ id: number; primary: string }>(
+        'SELECT id, primary_muscle AS "primary" FROM exercises WHERE LOWER(name) = LOWER(?) AND LOWER(variation) = LOWER(?)',
         [e.name, e.variation]
       );
       if (existing) {
+        // Never list the row's own main muscle (a user may have picked a different one) as secondary.
+        const secondary = cleanSecondaryMuscles(e.secondary.filter((m) => m !== e.muscle), existing.primary);
         db.run(
           `UPDATE exercises SET equipment = COALESCE(equipment, ?),
              secondary_muscles = CASE WHEN secondary_muscles = '[]' THEN ? ELSE secondary_muscles END
            WHERE id = ?`,
-          [e.equipment, JSON.stringify(e.secondary.filter((m) => m !== e.muscle)), existing.id]
+          [e.equipment, JSON.stringify(secondary), existing.id]
         );
         continue;
       }

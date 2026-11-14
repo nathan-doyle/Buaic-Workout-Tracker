@@ -234,10 +234,30 @@ export function parseMuscleList(json: string | null | undefined): string[] {
 // BIG 3, NEXT ROUTINE
 // ==========================================
 
-/** V1's Big 3 rule: the name contains bench press, squat or deadlift. */
-export function isBig3(name: string): boolean {
-  const n = name.toLowerCase();
-  return n.includes('bench press') || n.includes('squat') || n.includes('deadlift');
+/** The three competition lifts by name → the variations that are that lift ('' = none given, as V1 stored it). */
+const BIG3_VARIATIONS: Record<string, readonly string[]> = {
+  'bench press': ['', 'barbell'],
+  squat: ['', 'barbell', 'back', 'high bar', 'low bar'],
+  deadlift: ['', 'barbell', 'conventional', 'sumo'],
+};
+/** Whole names people give the same lifts (custom exercises), with no variation or "Barbell". */
+const BIG3_NAMES = new Set([
+  'barbell bench press', 'flat bench press', 'back squat', 'barbell squat', 'barbell back squat',
+  'conventional deadlift', 'sumo deadlift', 'barbell deadlift',
+]);
+
+/**
+ * Big 3 = barbell bench press, barbell back squat, deadlift (conventional or sumo), matched by
+ * exercise name and variation. Phase 8: V1's rule (the name *contains* "bench press", "squat"
+ * or "deadlift") also caught Romanian Deadlift, Front/Hack/Goblet/Split Squat, Incline and
+ * Close-Grip Bench Press and the Smith Machine and Dumbbell versions.
+ */
+export function isBig3(name: string, variation: string): boolean {
+  const n = name.trim().toLowerCase();
+  const v = (variation ?? '').trim().toLowerCase();
+  const variations = BIG3_VARIATIONS[n];
+  if (variations) return variations.includes(v);
+  return BIG3_NAMES.has(n) && (v === '' || v === 'barbell');
 }
 
 /**

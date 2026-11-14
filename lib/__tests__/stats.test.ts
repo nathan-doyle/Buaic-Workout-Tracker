@@ -146,8 +146,22 @@ describe('coverage', () => {
 });
 
 describe('Big 3 and next routine', () => {
-  it('V1 Big 3 rule', () => {
-    expect(['Bench Press', 'Front Squat', 'Romanian Deadlift', 'Overhead Press'].map(isBig3)).toEqual([true, true, true, false]);
+  it('Big 3 = barbell bench, back squat, conventional/sumo deadlift (name + variation)', () => {
+    const yes: [string, string][] = [
+      ['Bench Press', 'Barbell'], ['Squat', 'Barbell'], ['Deadlift', 'Conventional'], ['Deadlift', 'Sumo'],
+      // V1 exercises without a variation, any casing / spacing
+      ['bench press', ''], [' SQUAT ', ''], ['Deadlift', ''],
+      // whole-name customs
+      ['Back Squat', ''], ['Barbell Bench Press', ''], ['Sumo Deadlift', 'Barbell'],
+    ];
+    const no: [string, string][] = [
+      ['Romanian Deadlift', 'Barbell'], ['Deadlift', 'Trap Bar'], ['Front Squat', 'Barbell'], ['Hack Squat', 'Machine'],
+      ['Goblet Squat', 'Dumbbell'], ['Bulgarian Split Squat', 'Dumbbell'], ['Squat', 'Smith Machine'],
+      ['Incline Bench Press', 'Barbell'], ['Close-Grip Bench Press', 'Barbell'], ['Bench Press', 'Dumbbell'],
+      ['Bench Press', 'Smith Machine'], ['Overhead Press', 'Barbell'], ['Back Squat', 'Smith Machine'],
+    ];
+    expect(yes.filter(([n, v]) => !isBig3(n, v))).toEqual([]);
+    expect(no.filter(([n, v]) => isBig3(n, v))).toEqual([]);
   });
 
   it('next routine wraps round; unknown or none → first', () => {

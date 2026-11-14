@@ -3,6 +3,7 @@
  */
 import { type DbAdapter, transaction } from './adapter';
 import { ensureExercise, type RoutineSource } from './queries';
+import { ALL_MUSCLE_GROUPS } from './v1Constants';
 
 export interface RoutineSummary {
   id: number;
@@ -205,14 +206,29 @@ export function getExercise(db: DbAdapter, id: number): LibraryExercise | null {
 }
 
 /** A custom exercise in the library (or the existing one with that name + variation, un-archived). */
+/** Secondary muscles as stored: known muscle groups only, no duplicates, never the main muscle. */
+export function cleanSecondaryMuscles(secondary: readonly string[], primary: string): string[] {
+  return [...new Set(secondary)].filter((m) => m !== primary && ALL_MUSCLE_GROUPS.includes(m));
+}
+
 export function createCustomExercise(
   db: DbAdapter,
-  input: { name: string; variation: string; muscle: string; equipment?: string | null },
+  input: { name: string; variation: string; muscle: string; secondary?: readonly string[]; equipment?: string | null },
   nowIso: string
 ): number {
   return transaction(db, () => {
     const id = ensureExercise(db, { ...input, isCustom: true }, nowIso);
     if (input.equipment) db.run('UPDATE exercises SET equipment = COALESCE(equipment, ?) WHERE id = ?', [input.equipment, id]);
+    // Secondary muscles fill an exercise that has none yet (a new one, or an existing one
+    // without any); muscles an exercise already has are never replaced from here.
+    const row = db.get<{ primary: string }>('SELECT primary_muscle AS "primary" FROM exercises WHERE id = ?', [id]);
+    const secondary = cleanSecondaryMuscles(input.secondary ?? [], row?.primary ?? input.muscle);
+    if (secondary.length > 0) {
+      db.run(`UPDATE exercises SET secondary_muscles = ? WHERE id = ? AND secondary_muscles = '[]'`, [
+        JSON.stringify(secondary),
+        id,
+      ]);
+    }
     return id;
   });
 }

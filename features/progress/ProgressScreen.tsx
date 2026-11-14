@@ -192,7 +192,7 @@ function TopSets() {
   );
   // V1 order: Big 3 pinned first, then by name.
   const sorted = useMemo(
-    () => [...rows].sort((a, b) => Number(isBig3(b.name)) - Number(isBig3(a.name)) || a.name.localeCompare(b.name)),
+    () => [...rows].sort((a, b) => Number(isBig3(b.name, b.variation)) - Number(isBig3(a.name, a.variation)) || a.name.localeCompare(b.name)),
     [rows]
   );
   if (sorted.length === 0) {
@@ -218,7 +218,7 @@ function TopSets() {
             <View style={styles.topHead}>
               <Text style={styles.prName} numberOfLines={1}>{r.name}</Text>
               {r.variation ? <Text style={styles.badge}>{r.variation}</Text> : null}
-              {isBig3(r.name) && <Text style={[styles.badge, styles.big3]}>BIG 3</Text>}
+              {isBig3(r.name, r.variation) && <Text style={[styles.badge, styles.big3]}>BIG 3</Text>}
             </View>
             <Text style={styles.small}>{`${r.target_muscle}${r.date ? ` · ${formatLocalDate(r.date, undefined, { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}`}</Text>
             <View style={styles.compareRow}>
