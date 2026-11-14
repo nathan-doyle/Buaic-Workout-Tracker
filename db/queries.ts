@@ -320,15 +320,20 @@ export function getLastExercisePerformance(db: DbAdapter, exerciseId: number): P
 
 /** Heaviest set per exercise (V1's Top Sets tab). */
 export function getTopSets(db: DbAdapter): TopSetRow[] {
+  // Phase 4: on a tie of weight the set with more reps wins, then the earliest
+  // (V1's bare-column MAX picked an arbitrary row: 95 × 8 over 95 × 9).
   return db.all<TopSetRow>(
-    `SELECT e.id AS exercise_id, e.name, e.variation, s.split_name AS split_category,
-            e.primary_muscle AS target_muscle, MAX(l.weight) AS weight, l.reps, s.local_date AS date
-     FROM set_logs l
-     JOIN exercises e ON e.id = l.exercise_id
-     JOIN workout_sessions s ON s.id = l.session_id
-     WHERE l.weight > 0 AND s.status = 'completed'
-     GROUP BY e.id
-     ORDER BY weight DESC`
+    `SELECT exercise_id, name, variation, split_category, target_muscle, weight, reps, date FROM (
+       SELECT e.id AS exercise_id, e.name, e.variation, s.split_name AS split_category,
+              e.primary_muscle AS target_muscle, l.weight, l.reps, s.local_date AS date,
+              ROW_NUMBER() OVER (PARTITION BY e.id ORDER BY l.weight DESC, l.reps DESC, s.date_completed, l.id) AS rank
+       FROM set_logs l
+       JOIN exercises e ON e.id = l.exercise_id
+       JOIN workout_sessions s ON s.id = l.session_id
+       WHERE l.weight > 0 AND s.status = 'completed'
+     )
+     WHERE rank = 1
+     ORDER BY weight DESC, exercise_id`
   );
 }
 

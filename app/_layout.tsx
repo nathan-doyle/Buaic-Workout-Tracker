@@ -66,6 +66,9 @@ export default function RootLayout() {
                 <Stack.Screen name="routine/[id]" options={withHeader('Routine')} />
                 <Stack.Screen name="library" options={withHeader('Exercise library')} />
                 <Stack.Screen name="settings" options={withHeader('Settings')} />
+                <Stack.Screen name="exercise/[id]" options={withHeader('Exercise')} />
+                <Stack.Screen name="session/[id]" options={{ headerShown: false }} />
+                <Stack.Screen name="calendar" options={withHeader('Calendar')} />
               </Stack>
             </WorkoutProvider>
           </DatabaseGate>

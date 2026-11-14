@@ -526,6 +526,16 @@ export function createActiveWorkoutStore(deps: ActiveWorkoutDeps) {
       return true;
     },
 
+    /**
+     * Re-reads "previous" and the all-time bests of this workout's exercises, after
+     * past workouts were edited or deleted in History. The draft is not changed.
+     */
+    reloadHistory() {
+      if (!state.draft) return;
+      const { previous, bests } = loadHistory(state.draft.exercises.map((e) => e.exerciseId));
+      setState({ ...state, previous, bests });
+    },
+
     /** Forgets the in-memory state without touching the database (after a backup import). */
     reset() {
       if (pendingSave !== null) clearTimer(pendingSave);

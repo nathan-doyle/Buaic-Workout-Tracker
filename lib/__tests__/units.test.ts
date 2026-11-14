@@ -175,3 +175,18 @@ describe('weight entries', () => {
     expect(entryToKg({ text: '' }, 'lb')).toBe(0);
   });
 });
+
+describe('formatLoad', () => {
+  const { formatLoad, isBodyweightEquipment } = jest.requireActual('../units') as typeof import('../units');
+  it('shows BW, BW + added weight, or the weight', () => {
+    expect(formatLoad(0, 'kg')).toBe('BW');
+    expect(formatLoad(0, 'lb', true)).toBe('BW');
+    expect(formatLoad(10, 'kg', true)).toBe('BW +10 kg');
+    expect(formatLoad(4.5359237, 'lb', true)).toBe('BW +10 lb');
+    expect(formatLoad(100, 'kg')).toBe('100 kg');
+    expect(formatLoad(Number.NaN, 'kg')).toBe('—');
+  });
+  it('recognises bodyweight equipment', () => {
+    expect([isBodyweightEquipment('Bodyweight'), isBodyweightEquipment('bodyweight'), isBodyweightEquipment('Barbell'), isBodyweightEquipment(null)]).toEqual([true, true, false, false]);
+  });
+});

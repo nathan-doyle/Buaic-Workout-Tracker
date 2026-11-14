@@ -1,16 +1,16 @@
 /**
- * Tab shell with V1's four tabs. The shared BUAIC header and V1's segmented tab
- * row are the navigator's custom tab bar (at the top, as in V1). Below the tabs, in
- * the layout flow: a "workout in progress" bar and the rest timer (Phase 3).
+ * Tab shell: Workout · History · Progress · Exercises (Phase 4; V1's Coverage and
+ * Top Sets are sections of Progress). The shared BUAIC header and V1's segmented
+ * tab row are the navigator's custom tab bar (at the top, as in V1). Below the
+ * tabs, in the layout flow: a "workout in progress" bar and the rest timer.
  *
  * Uses expo-router's JS tabs, not native tabs; see V2_PROGRESS.md → Decisions.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import CalendarModal from '../../components/CalendarModal';
 import WorkoutSummaryModal from '../../components/WorkoutSummaryModal';
 import RestBar from '../../features/rest/RestBar';
 import ShellTabBar from '../../features/shell/ShellTabBar';
@@ -22,14 +22,13 @@ export default function TabsLayout() {
   const { unit, summaryData, showSummaryModal, closeSummary } = useWorkout();
   const { session } = useActiveWorkoutState();
   const router = useRouter();
-  const [showCalendar, setShowCalendar] = useState(false);
 
   return (
     <SafeAreaView style={styles.container}>
       <Tabs
         // V1 had no tab history: Android back leaves the app from any tab.
         backBehavior="none"
-        tabBar={(props) => <ShellTabBar {...props} onOpenCalendar={() => setShowCalendar(true)} />}
+        tabBar={(props) => <ShellTabBar {...props} onOpenCalendar={() => router.push('/calendar')} />}
         screenOptions={{
           headerShown: false,
           tabBarPosition: 'top',
@@ -38,9 +37,9 @@ export default function TabsLayout() {
         }}
       >
         <Tabs.Screen name="index" options={{ title: 'WORKOUT' }} />
-        <Tabs.Screen name="coverage" options={{ title: 'COVERAGE' }} />
-        <Tabs.Screen name="top-sets" options={{ title: 'TOP SETS' }} />
         <Tabs.Screen name="history" options={{ title: 'HISTORY' }} />
+        <Tabs.Screen name="progress" options={{ title: 'PROGRESS' }} />
+        <Tabs.Screen name="exercises" options={{ title: 'EXERCISES' }} />
       </Tabs>
 
       {session && (
@@ -56,9 +55,6 @@ export default function TabsLayout() {
         </Pressable>
       )}
       <RestBar onPress={session ? () => router.push('/workout') : undefined} />
-
-      {/* Monthly Activity Calendar Modal */}
-      <CalendarModal visible={showCalendar} onClose={() => setShowCalendar(false)} />
 
       {/* Post-Workout Summary Recap & Share Card */}
       <WorkoutSummaryModal visible={showSummaryModal} summaryData={summaryData} unit={unit} onClose={closeSummary} />

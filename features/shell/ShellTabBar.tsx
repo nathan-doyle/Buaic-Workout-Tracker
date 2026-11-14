@@ -37,7 +37,12 @@ export default function ShellTabBar({
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <TouchableOpacity style={styles.calendarBtn} onPress={onOpenCalendar}>
+          <TouchableOpacity
+            style={styles.calendarBtn}
+            onPress={onOpenCalendar}
+            accessibilityRole="button"
+            accessibilityLabel="Calendar"
+          >
             <Text style={{ fontSize: 16 }}>📅</Text>
           </TouchableOpacity>
 

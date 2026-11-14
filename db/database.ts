@@ -13,16 +13,13 @@
 import * as SQLite from 'expo-sqlite';
 import { File } from 'expo-file-system';
 
-import { todayLocalDate, tzOffsetMinutesOf } from '../lib/dates';
 import type { DbAdapter } from './adapter';
 import { expoAdapter } from './expoAdapter';
 import { MigrationError, type MigrationResult, migrateDatabase } from './migrate';
-import * as Q from './queries';
 import { createCustomExercise } from './routines';
 import { DATABASE_NAME, V1_BACKUP_NAME } from './schema';
 import { seedLibrary } from './library';
 import { seedDatabase } from './seed';
-import { ALL_MUSCLE_GROUPS } from './v1Constants';
 
 export { ALL_MUSCLE_GROUPS, MUSCLE_SPLIT_MAP } from './v1Constants';
 export type {
@@ -138,20 +135,5 @@ export const createExercise = (name: string, variation: string | null | undefine
     createCustomExercise(db, { name, variation: variation || '', muscle }, new Date().toISOString())
   );
 
-/** Heaviest set per exercise (the Top Sets tab). */
-export const getBig3PRs = (): Q.TopSetRow[] => safely('fetching top sets', [], (db) => Q.getTopSets(db));
-
-export const getMuscleCoverageStatus = (): Record<string, Q.MuscleCoverage> =>
-  safely('computing muscle coverage', {}, (db) => Q.getMuscleCoverage(db, ALL_MUSCLE_GROUPS, todayLocalDate()));
-
-export const getWorkoutHistory = (): Q.HistorySession[] =>
-  safely('fetching workout history', [], (db) => Q.getWorkoutHistory(db));
-
-export const getCalendarActivity = (): Record<string, Q.CalendarDay> =>
-  safely('fetching calendar activity', {}, (db) => Q.getCalendarActivity(db));
-
-export const deleteWorkoutSession = (sessionId: number): boolean =>
-  safely('deleting session', false, (db) => {
-    Q.deleteWorkoutSession(db, sessionId);
-    return true;
-  });
+// Phase 4: History, Top Sets, Coverage and the Calendar read `db/history.ts` and
+// `db/progress.ts` through `getDb()`; V1's bindings for them are gone.

@@ -5,7 +5,7 @@
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import AddExerciseModal from '../../components/AddExerciseModal';
 import { getDb } from '../../db/database';
@@ -15,6 +15,7 @@ import { colors, radii, spacing, typography } from '../../theme';
 import ActionSheet, { type SheetAction } from '../ui/ActionSheet';
 
 export default function LibraryScreen() {
+  const router = useRouter();
   const [all, setAll] = useState<LibraryExercise[]>([]);
   const [query, setQuery] = useState('');
   const [muscle, setMuscle] = useState<string | null>(null);
@@ -112,9 +113,9 @@ export default function LibraryScreen() {
         renderItem={({ item }) => (
           <Pressable
             style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
-            onPress={() => setMenuFor(item)}
+            onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: String(item.id) } })}
             accessibilityRole="button"
-            accessibilityLabel={`${item.name} ${item.variation}, ${item.muscle}, ${item.setCount} sets logged. Options.`}
+            accessibilityLabel={`${item.name} ${item.variation}, ${item.muscle}, ${item.setCount} sets logged. Open progress.`}
           >
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>
@@ -127,7 +128,15 @@ export default function LibraryScreen() {
                   .join(' · ')}
               </Text>
             </View>
-            <Text style={styles.chev}>⋯</Text>
+            <Pressable
+              onPress={() => setMenuFor(item)}
+              style={styles.menuBtn}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel={`Options for ${item.name}`}
+            >
+              <Text style={styles.chev}>⋯</Text>
+            </Pressable>
           </Pressable>
         )}
       />
@@ -160,4 +169,5 @@ const styles = StyleSheet.create({
   variation: { ...typography.caption, color: colors.accent },
   sub: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
   chev: { fontSize: 20, color: colors.textSecondary, paddingLeft: spacing.md },
+  menuBtn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
 });

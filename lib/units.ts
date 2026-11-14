@@ -57,6 +57,22 @@ export function formatWeight(kg: number, unit: WeightUnit): string {
   return String(displayWeight(kg, unit));
 }
 
+/**
+ * A set's load as display text: "BW" for bodyweight (0), "BW +10 kg" for added
+ * weight on a bodyweight exercise, otherwise "100 kg".
+ */
+export function formatLoad(kg: number, unit: WeightUnit, bodyweightExercise = false): string {
+  if (!Number.isFinite(kg)) return '—';
+  if (kg <= 0) return 'BW';
+  const text = `${formatWeight(kg, unit)} ${unit}`;
+  return bodyweightExercise ? `BW +${text}` : text;
+}
+
+/** True for exercises whose load is the body (library equipment "Bodyweight"). */
+export function isBodyweightEquipment(equipment: string | null | undefined): boolean {
+  return (equipment ?? '').toLowerCase() === 'bodyweight';
+}
+
 /** A stored kg volume (weight × reps) in `unit`, rounded to a whole number. Missing → "0". */
 export function formatVolume(kg: number | null | undefined, unit: WeightUnit): string {
   if (kg === null || kg === undefined || !Number.isFinite(kg)) return '0';

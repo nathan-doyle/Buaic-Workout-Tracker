@@ -61,6 +61,28 @@ export function addDays(localDate: string, days: number): string {
   return formatUtcDate(new Date(requireUtcMidnight(localDate) + days * MS_PER_DAY));
 }
 
+/**
+ * `localDate` moved by `months` calendar months; the day is clamped to the target
+ * month's length (31 March − 1 month = 28/29 February).
+ */
+export function addMonths(localDate: string, months: number): string {
+  if (!Number.isInteger(months)) throw new RangeError(`months must be an integer, got ${months}`);
+  const date = new Date(requireUtcMidnight(localDate));
+  const day = date.getUTCDate();
+  date.setUTCDate(1);
+  date.setUTCMonth(date.getUTCMonth() + months);
+  const lastOfMonth = new Date(0);
+  lastOfMonth.setUTCFullYear(date.getUTCFullYear(), date.getUTCMonth() + 1, 0);
+  date.setUTCDate(Math.min(day, lastOfMonth.getUTCDate()));
+  return formatUtcDate(date);
+}
+
+/** `YYYY-MM` of a local date. */
+export function monthOf(localDate: string): string {
+  requireUtcMidnight(localDate);
+  return localDate.slice(0, 7);
+}
+
 /** Day of the week: 0 = Sunday … 6 = Saturday. */
 export function dayOfWeek(localDate: string): number {
   return new Date(requireUtcMidnight(localDate)).getUTCDay();
