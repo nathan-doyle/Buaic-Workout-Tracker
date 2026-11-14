@@ -1,7 +1,7 @@
 /**
  * JSON backup on the device: export through the share sheet, pick + validate a
  * file, and import it (after the user confirmed) with a verified copy of the
- * current database saved first.
+ * current database saved first. Also the CSV export of every set (Phase 6).
  */
 import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
@@ -16,11 +16,13 @@ import {
   importBackup,
   validateBackup,
 } from '../../db/backupJson';
+import { buildSetsCsv } from '../../db/csvExport';
 import { databaseFilePath, getDb, siblingPath, toFileUri } from '../../db/database';
 import { expoAdapter } from '../../db/expoAdapter';
 import { createVerifiedCopy } from '../../db/migrate';
 import { formatLocalDate, todayLocalDate } from '../../lib/dates';
 import { pickRestorePoints, type RestorePoint, restorePointName } from '../../lib/restorePoints';
+import type { WeightUnit } from '../../lib/units';
 import { settingsStore } from '../settings/settingsStore';
 import { bumpDataRevision } from './dataRevision';
 
@@ -37,6 +39,29 @@ export async function exportBackup(): Promise<void> {
     UTI: 'public.json',
     dialogTitle: 'Export Buaic backup',
   });
+}
+
+export type CsvExportResult = { status: 'empty' } | { status: 'shared'; setCount: number; workoutCount: number };
+
+/**
+ * Writes every set of every completed workout to a CSV file (one row per set,
+ * weights in kg exactly and in `unit` as shown) and opens the share sheet.
+ * With no completed workouts nothing is written.
+ */
+export async function exportSetsCsv(unit: WeightUnit): Promise<CsvExportResult> {
+  const csv = buildSetsCsv(getDb(), unit);
+  if (csv.setCount === 0) return { status: 'empty' };
+  const file = new File(Paths.cache, `buaic-sets-${todayLocalDate()}.csv`);
+  if (file.exists) file.delete();
+  file.create();
+  await file.write(csv.text); // UTF-8; the text starts with a BOM for Excel
+  if (!(await Sharing.isAvailableAsync())) throw new Error('Sharing is not available on this device.');
+  await Sharing.shareAsync(file.uri, {
+    mimeType: 'text/csv',
+    UTI: 'public.comma-separated-values-text',
+    dialogTitle: 'Export Buaic sets (CSV)',
+  });
+  return { status: 'shared', setCount: csv.setCount, workoutCount: csv.workoutCount };
 }
 
 export type PickedBackup =

@@ -48,6 +48,7 @@ export const ICONS = {
   privacy: 'shield-lock-outline',
   info: 'information-outline',
   bolt: 'lightning-bolt',
+  spreadsheet: 'file-delimited-outline',
 } as const satisfies Record<string, GlyphName>;
 
 export type IconKey = keyof typeof ICONS;

@@ -31,6 +31,17 @@ export function localDateString(date: Date, tzOffsetMinutes: number): string {
   return formatUtcDate(new Date(time + tzOffsetMinutes * MS_PER_MINUTE));
 }
 
+/** The local 24-hour `HH:MM` time of the instant `date` in a zone `tzOffsetMinutes` from UTC. */
+export function localTimeString(date: Date, tzOffsetMinutes: number): string {
+  const time = date.getTime();
+  if (!Number.isFinite(time)) throw new RangeError('Invalid Date');
+  if (!Number.isFinite(tzOffsetMinutes)) {
+    throw new RangeError(`tzOffsetMinutes must be finite, got ${tzOffsetMinutes}`);
+  }
+  const local = new Date(time + tzOffsetMinutes * MS_PER_MINUTE);
+  return `${String(local.getUTCHours()).padStart(2, '0')}:${String(local.getUTCMinutes()).padStart(2, '0')}`;
+}
+
 /** Today's local date on this device (or of `now`). */
 export function todayLocalDate(now: Date = new Date()): string {
   return localDateString(now, tzOffsetMinutesOf(now));

@@ -1,6 +1,7 @@
 /**
  * Settings (Phase 5, full): units and calendar, rest timer, workout, bar and
- * plates, data (backup export/import and restore points), about (rate, version,
+ * plates, data (backup export/import, CSV export of sets (Phase 6) and restore
+ * points), about (rate, version,
  * privacy). Every change is saved at once.
  */
 import React, { useCallback, useState } from 'react';
@@ -16,6 +17,7 @@ import {
   deleteRestorePoint,
   describeBackup,
   exportBackup,
+  exportSetsCsv,
   listRestorePoints,
   pickBackup,
   readRestorePoint,
@@ -38,7 +40,7 @@ const restLabel = (seconds: number) => (seconds < 60 ? `${seconds}s` : formatClo
 
 export default function SettingsScreen() {
   const settings = useSettings();
-  const [busy, setBusy] = useState<'export' | 'import' | null>(null);
+  const [busy, setBusy] = useState<'export' | 'csv' | 'import' | null>(null);
   const [points, setPoints] = useState<RestorePoint[]>([]);
   const unit = settings.unit;
 
@@ -74,6 +76,21 @@ export default function SettingsScreen() {
     setBusy('export');
     try {
       await exportBackup();
+    } catch (error) {
+      Alert.alert('Export failed', error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const onExportCsv = async () => {
+    setBusy('csv');
+    try {
+      const result = await exportSetsCsv(unit);
+      if (result.status === 'empty') {
+        haptics.warning();
+        Alert.alert('Nothing to export yet', 'The CSV has one row per set of each finished workout. Finish a workout first.');
+      }
     } catch (error) {
       Alert.alert('Export failed', error instanceof Error ? error.message : String(error));
     } finally {
@@ -228,6 +245,15 @@ export default function SettingsScreen() {
 
       <Section title="DATA">
         <Row icon="share" label="Export backup (JSON)" onPress={onExport} busy={busy === 'export'} disabled={busy !== null} a11y="Export all data as a backup file" />
+        <Row
+          icon="spreadsheet"
+          label="Export sets (CSV)"
+          onPress={onExportCsv}
+          busy={busy === 'csv'}
+          disabled={busy !== null}
+          a11y="Export every logged set as a spreadsheet file"
+          hint="One row per set of each finished workout, for Excel, Numbers or Google Sheets"
+        />
         <Row
           icon="restore"
           label="Import backup…"
