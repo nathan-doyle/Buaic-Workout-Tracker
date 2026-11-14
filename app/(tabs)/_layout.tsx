@@ -5,6 +5,7 @@
  * right above the tab bar). See V2_PROGRESS.md → Decisions (native tabs).
  */
 import React, { useEffect } from 'react';
+import { Platform } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import { NativeTabs } from 'expo-router/native-tabs';
@@ -41,7 +42,9 @@ export default function TabsLayout() {
         backBehavior="none"
         backgroundColor={colors.surface1}
         tintColor={colors.accent}
-        iconColor={{ default: colors.textSecondary, selected: colors.onAccent }}
+        // Android draws a gold pill behind the selected icon (indicatorColor), so the icon is dark on it.
+        // iOS tab bars have no pill: the selected icon is tinted gold like its label.
+        iconColor={{ default: colors.textSecondary, selected: Platform.OS === 'ios' ? colors.accent : colors.onAccent }}
         indicatorColor={colors.accent}
         rippleColor={colors.surface3}
         labelStyle={{

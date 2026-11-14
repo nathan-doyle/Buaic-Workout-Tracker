@@ -28,11 +28,17 @@ import { colors } from '../../theme';
 import { useActiveWorkoutState } from '../workout/activeWorkout';
 import { useRestTimer } from './restTimer';
 
-/** Dates travel as ISO strings (JSON), which the native side reads back as dates. */
+/**
+ * Times are epoch milliseconds. Props reach the layout as JSON (the widget extension's
+ * JavaScriptCore runtime parses them), so a Date would arrive as a string, and @expo/ui's
+ * timer `Text` calls `.getTime()` on `timerInterval` / `pauseTime`: the layout must build
+ * the Dates itself. (Passing Dates through made the layout throw, and expo-widgets' error
+ * view is white text that Live Activities draw on a white background: a blank banner.)
+ */
 type RestActivityProps = {
-  restStart: Date;
-  restEnd: Date;
-  pausedAt: Date | null;
+  restStart: number;
+  restEnd: number;
+  pausedAt: number | null;
   next: string;
   nextDetail: string;
   cBackground: string;
@@ -50,9 +56,9 @@ const RestActivityLayout = (props: RestActivityProps, environment: LiveActivityE
       <Text modifiers={[font({ size, weight: 'bold' }), monospacedDigit(), foregroundStyle(props.cAccent)]}>0:00</Text>
     ) : (
       <Text
-        timerInterval={{ lower: props.restStart, upper: props.restEnd }}
+        timerInterval={{ lower: new Date(props.restStart), upper: new Date(props.restEnd) }}
         countsDown
-        pauseTime={props.pausedAt ?? undefined}
+        pauseTime={props.pausedAt === null ? undefined : new Date(props.pausedAt)}
         modifiers={[
           font({ size, weight: 'bold' }),
           monospacedDigit(),
@@ -111,9 +117,9 @@ let sent: RestActivityContent | null = null;
 
 function toProps(c: RestActivityContent): RestActivityProps {
   return {
-    restStart: new Date(c.restStart),
-    restEnd: new Date(c.restEnd),
-    pausedAt: c.pausedAt === null ? null : new Date(c.pausedAt),
+    restStart: new Date(c.restStart).getTime(),
+    restEnd: new Date(c.restEnd).getTime(),
+    pausedAt: c.pausedAt === null ? null : new Date(c.pausedAt).getTime(),
     next: c.next,
     nextDetail: c.nextDetail,
     cBackground: colors.background,

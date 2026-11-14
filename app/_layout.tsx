@@ -58,6 +58,9 @@ const withHeader = (title: string) => ({
   headerTintColor: colors.accent,
   headerTitleStyle: { color: colors.textPrimary },
   headerShadowVisible: false,
+  // iOS: chevron only. Its default label is the previous screen's title, which for the
+  // tab shell was the route group's name, "(tabs)". (Android already shows only an arrow.)
+  headerBackButtonDisplayMode: 'minimal' as const,
 });
 
 export default function RootLayout() {
@@ -91,6 +94,8 @@ export default function RootLayout() {
                   animation: reduceMotion ? 'none' : 'default',
                 }}
               >
+                {/* Named so iOS never shows the route group "(tabs)" (e.g. in the long-press back menu). */}
+                <Stack.Screen name="(tabs)" options={{ title: 'Buaic' }} />
                 <Stack.Screen name="onboarding" options={{ gestureEnabled: false, animation: reduceMotion ? 'none' : 'fade' }} />
                 <Stack.Screen
                   name="workout"
