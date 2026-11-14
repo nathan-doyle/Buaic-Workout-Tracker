@@ -10,6 +10,7 @@
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSheetBottomInset } from '../ui/sheetInsets';
 
 import { ALL_MUSCLE_GROUPS, createExercise } from '../../db/database';
 import { colors, maxFontScale, radii, spacing, touchTarget, typography } from '../../theme';
@@ -29,6 +30,7 @@ const NO_MISSING: ReadonlySet<string> = new Set();
 
 export default function AddExerciseModal({ visible, onClose, onExerciseAdded, destination = '' }: Props) {
   const insets = useSafeAreaInsets();
+  const bottomInset = useSheetBottomInset();
   const [name, setName] = useState('');
   const [variation, setVariation] = useState('');
   const [muscle, setMuscle] = useState('Upper Chest');
@@ -58,7 +60,7 @@ export default function AddExerciseModal({ visible, onClose, onExerciseAdded, de
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
       <KeyboardAvoidingView style={[styles.overlay, { paddingTop: insets.top + spacing.lg }]} behavior="padding">
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.md }]}>
+        <View style={[styles.sheet, { paddingBottom: bottomInset + spacing.md }]}>
           <View style={styles.header}>
             <Text style={styles.title} accessibilityRole="header">New exercise</Text>
             <IconButton icon="close" label="Cancel" onPress={onClose} color={colors.textPrimary} />

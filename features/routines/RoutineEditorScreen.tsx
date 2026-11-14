@@ -3,8 +3,9 @@
  * remove. Every change is saved straight away.
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { HeaderHeightContext } from 'expo-router/react-navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getDb } from '../../db/database';
@@ -32,6 +33,10 @@ export default function RoutineEditorScreen() {
   const routineId = Number(id);
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // This screen's content starts under the native header, so the keyboard offset is the header's
+  // height (status bar + bar; iOS: 91–103 pt on Face ID iPhones, 64 on an SE). The 100 is only
+  // a fallback; the native stack always provides the context.
+  const headerHeight = React.useContext(HeaderHeightContext) ?? 100;
   const { defaultRestSeconds } = useSettings();
   const { session } = useActiveWorkoutState();
 
@@ -127,7 +132,8 @@ export default function RoutineEditorScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}>
+    // Both platforms: edge-to-edge Android no longer resizes the window for the keyboard (as in the active workout).
+    <KeyboardAvoidingView style={styles.container} behavior="padding" keyboardVerticalOffset={headerHeight}>
       <Stack.Screen options={{ title: name || 'Routine' }} />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xxl }]} keyboardShouldPersistTaps="handled">
         <Text style={styles.label}>NAME</Text>

@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSheetBottomInset } from './sheetInsets';
 
 import { colors, radii, spacing, typography } from '../../theme';
 
@@ -25,11 +25,11 @@ export default function ActionSheet({
   actions: SheetAction[];
   onClose: () => void;
 }) {
-  const insets = useSafeAreaInsets();
+  const bottomInset = useSheetBottomInset();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
       <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close menu">
-        <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + spacing.sm }]} onPress={() => {}}>
+        <Pressable style={[styles.sheet, { paddingBottom: bottomInset + spacing.sm }]} onPress={() => {}}>
           {title ? <Text style={styles.title}>{title}</Text> : null}
           <ScrollView style={{ maxHeight: 480 }} bounces={false}>
           {actions.map((a) => (

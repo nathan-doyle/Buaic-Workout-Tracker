@@ -8,7 +8,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSheetBottomInset } from '../ui/sheetInsets';
 
 import { getDb } from '../../db/database';
 import { getCoverageSets, getExercisesForMuscle, getRoutineMuscles, type MuscleExercise } from '../../db/progress';
@@ -27,7 +27,7 @@ const fmtSets = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
 export default function CoverageView() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const bottomInset = useSheetBottomInset();
   const { weekStart } = useSettings();
   const [mode, setMode] = useState<CoverageMode>('rolling');
   const [rows, setRows] = useState<Rows>([]);
@@ -136,7 +136,7 @@ export default function CoverageView() {
 
       <Modal visible={selected !== null} transparent animationType="fade" onRequestClose={() => setSelected(null)} statusBarTranslucent navigationBarTranslucent>
         <Pressable style={styles.scrim} onPress={() => setSelected(null)} accessibilityLabel="Close">
-          <Pressable style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]} onPress={() => {}}>
+          <Pressable style={[styles.sheet, { paddingBottom: bottomInset + spacing.lg }]} onPress={() => {}}>
             {selected && (
               <ScrollView style={{ maxHeight: 520 }} bounces={false}>
                 <Text style={styles.sheetTitle}>{selected}</Text>

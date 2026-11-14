@@ -1,12 +1,18 @@
 /**
  * Frame for each tab screen under native tabs (Phase 5): the BUAIC header on top,
  * the screen, then — in the layout flow, right above the system tab bar — the
- * "workout in progress" bar and the rest timer. Native tabs inset the content
- * above their bar on both platforms (automatic content insets), so nothing is
- * hidden behind it. Only the focused tab draws the bars (one ticking rest bar).
+ * "workout in progress" bar and the rest timer. Only the focused tab draws the
+ * bars (one ticking rest bar).
+ *
+ * Bottom inset: on Android, native tabs wrap the content in a SafeAreaView that
+ * applies the bar's inset. On iOS they don't (only the first ScrollView gets
+ * automatic content insets), so the content would run under the tab bar and hide
+ * the bars; expo-router wraps each iOS tab in its own SafeAreaProvider, whose
+ * bottom inset is the tab bar, so padding by it ends everything right above the
+ * bar (0 if the content already ends there).
  */
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useIsFocused, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,7 +28,7 @@ export default function TabScreen({ children }: { children: React.ReactNode }) {
   const focused = useIsFocused();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + spacing.sm }]}>
+    <View style={[styles.container, { paddingTop: insets.top + spacing.sm, paddingBottom: Platform.OS === 'ios' ? insets.bottom : 0 }]}>
       <ShellHeader onOpenCalendar={() => router.push('/calendar')} />
       <View style={styles.body}>{children}</View>
       {focused && <WorkoutBars />}
