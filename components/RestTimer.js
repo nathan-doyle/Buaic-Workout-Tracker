@@ -11,7 +11,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, AppState, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
-import { Audio } from 'expo-av';
+import { createAudioPlayer } from 'expo-audio';
+
+// Bundled chime so the rest-over sound works offline and on iOS
+const REST_OVER_SOUND = require('../assets/sounds/rest-over.wav');
+let restOverPlayer = null;
 
 export default function RestTimer({ initialSeconds = 90, onClose }) {
   // ==========================================
@@ -88,8 +92,9 @@ export default function RestTimer({ initialSeconds = 90, onClose }) {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds: Math.max(1, Math.floor(secs)),
         repeats: false,
-        // Android specific: bind to high-priority channel and enforce hardware alarm
-        ...(Platform.OS === 'android' ? { channelId: 'rest-timer', exact: true } : {}),
+        // Android: high-priority channel. expo-notifications uses an exact alarm automatically
+        // whenever the OS allows it (SCHEDULE_EXACT_ALARM / USE_EXACT_ALARM in app.json).
+        ...(Platform.OS === 'android' ? { channelId: 'rest-timer' } : {}),
       };
 
       const id = await Notifications.scheduleNotificationAsync({
@@ -131,13 +136,13 @@ export default function RestTimer({ initialSeconds = 90, onClose }) {
   const triggerRestOverEffects = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     try {
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: 'https://actions.google.com/sounds/v1/alarms/beep_short.ogg' },
-        { shouldPlay: true }
-      );
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) sound.unloadAsync();
-      });
+      // One shared player, reused for every rest (created on first use)
+      if (!restOverPlayer) {
+        restOverPlayer = createAudioPlayer(REST_OVER_SOUND);
+      } else {
+        await restOverPlayer.seekTo(0);
+      }
+      restOverPlayer.play();
     } catch (e) {
       console.log('Audio playback error:', e);
     }

@@ -14,7 +14,6 @@ import {
   View,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   TextInput,
   Alert,
   Platform,
@@ -24,7 +23,8 @@ import {
 
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
-import { Audio } from 'expo-av';
+import { setAudioModeAsync } from 'expo-audio';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   initDatabase,
@@ -54,16 +54,27 @@ const DEFAULT_SPLITS = [
   'Full Body',
 ];
 
-// Configure notifications to present alerts and sounds when app is in foreground
+// The only notification is the rest-over alarm. In the foreground the on-screen timer already
+// plays the chime and buzzes, so the system notification is suppressed to avoid a double alert.
+// (SDK 58 shows foreground notifications by default; this handler overrides that.)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
+    shouldShowBanner: false,
+    shouldShowList: false,
+    shouldPlaySound: false,
     shouldSetBadge: false,
   }),
 });
 
 export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
+  );
+}
+
+function AppContent() {
   // ==========================================
   // STATE MANAGEMENT
   // ==========================================
@@ -92,12 +103,12 @@ export default function App() {
     const setupAudioAndNotifications = async () => {
       // Configure audio session to prevent ducking background music (Spotify/Apple Music)
       try {
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true,
-          allowsRecordingIOS: false,
-          staysActiveInBackground: false,
-          shouldDuckAndroid: false,
-          playThroughEarpieceAndroid: false,
+        await setAudioModeAsync({
+          playsInSilentMode: true,
+          interruptionMode: 'mixWithOthers',
+          allowsRecording: false,
+          shouldPlayInBackground: false,
+          shouldRouteThroughEarpiece: false,
         });
       } catch (e) {
         console.log('Audio mode initialization error:', e);
@@ -129,7 +140,7 @@ export default function App() {
             name: 'Rest Timer Alerts',
             importance: Notifications.AndroidImportance.MAX,
             vibrationPattern: [0, 500, 250, 500],
-            sound: 'default',
+            // `sound` omitted = system default sound ('default' is now read as a custom file name)
             enableVibrate: true,
             lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
             bypassDnd: true,
@@ -701,8 +712,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F0F0F',
-    // SafeAreaView automatically handles top notch inset on iOS; Android requires explicit padding
-    paddingTop: Platform.OS === 'android' ? 50 : 10,
+    // System bar and notch insets come from SafeAreaView (react-native-safe-area-context)
+    paddingTop: 10,
   },
   headerContainer: {
     flexDirection: 'row',
