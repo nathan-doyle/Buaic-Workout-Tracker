@@ -227,3 +227,18 @@ export function getSessionExercises(db: DbAdapter, sessionId: number): SessionEx
     [sessionId]
   );
 }
+
+/** Completed workouts (any routine), for the review prompt. */
+export function countCompletedWorkouts(db: DbAdapter): number {
+  return db.get<{ n: number }>("SELECT COUNT(*) AS n FROM workout_sessions WHERE status = 'completed'")?.n ?? 0;
+}
+
+/** Of `exerciseIds`, those whose equipment is "Bodyweight" (shown as "BW +10 kg"). */
+export function bodyweightExerciseIds(db: DbAdapter, exerciseIds: readonly number[]): Set<number> {
+  if (exerciseIds.length === 0) return new Set();
+  const rows = db.all<{ id: number }>(
+    `SELECT id FROM exercises WHERE LOWER(COALESCE(equipment, '')) = 'bodyweight' AND id IN (${exerciseIds.map(() => '?').join(',')})`,
+    [...exerciseIds]
+  );
+  return new Set(rows.map((r) => r.id));
+}

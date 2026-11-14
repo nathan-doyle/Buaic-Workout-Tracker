@@ -3,7 +3,7 @@
  * `activeWorkout`, which keeps it in SQLite: ticked sets at once, typed input
  * shortly after, and everything when the app goes to the background.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   AppState,
@@ -17,13 +17,13 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Animated, { FadeOut, ReduceMotion, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getDb } from '../../db/database';
 import { getRoutineExercises, setRoutineExercises } from '../../db/routines';
-import type { PreviousSet } from '../../db/workouts';
+import { bodyweightExerciseIds, type PreviousSet } from '../../db/workouts';
 import { progressionHint } from '../../lib/progression';
 import { formatClock } from '../../lib/restTimer';
 import { DISPLAY_STEP, formatWeight, fromKg, KG_PER_LB, roundToStep, type WeightUnit } from '../../lib/units';
@@ -36,20 +36,28 @@ import {
   untickedSetCount,
   type WorkoutDraft,
 } from '../../lib/workoutDraft';
-import { colors, radii, spacing, typography } from '../../theme';
+import { colors, maxFontScale, radii, spacing, touchTarget, typography } from '../../theme';
 import { openExercisePicker } from '../library/pickExercise';
 import RestBar from '../rest/RestBar';
 import { restTimer } from '../rest/restTimer';
+import { armReviewPrompt } from '../review/reviewPrompt';
 import { useSettings } from '../settings/settingsStore';
 import ActionSheet, { type SheetAction } from '../ui/ActionSheet';
+import { haptics } from '../ui/haptics';
+import { Icon, IconButton } from '../ui/Icon';
 import PlateSheet from './PlateSheet';
 import { activeWorkout, libraryTemplate, useActiveWorkoutState } from './activeWorkout';
 import { useWorkout } from './WorkoutProvider';
 
 type Focus = { exerciseId: number; key: string; field: 'weight' | 'reps' } | null;
 
-const fmtSet = (weightKg: number, reps: number, unit: WeightUnit) =>
-  `${weightKg > 0 ? formatWeight(weightKg, unit) : 'BW'} × ${reps}`;
+/** "100 × 5"; bodyweight exercises with added load read "BW +10 × 5" (the unit is in the column head). */
+const fmtSet = (weightKg: number, reps: number, unit: WeightUnit, bodyweight = false) =>
+  `${weightKg > 0 ? `${bodyweight ? 'BW +' : ''}${formatWeight(weightKg, unit)}` : 'BW'} × ${reps}`;
+
+/** Layout animations: subtle, and skipped entirely when the system's Reduce Motion is on. */
+const tickIn = ZoomIn.duration(160).reduceMotion(ReduceMotion.System);
+const flashOut = FadeOut.duration(900).reduceMotion(ReduceMotion.System);
 
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
@@ -64,6 +72,7 @@ export default function ActiveWorkoutScreen() {
   const [flashKey, setFlashKey] = useState<string | null>(null);
   const [plates, setPlates] = useState<number | null>(null);
   const [notesOpen, setNotesOpen] = useState<number[]>([]);
+  const [renaming, setRenaming] = useState<string | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Save typed input whenever the app leaves the foreground, and when leaving the screen.
@@ -80,6 +89,16 @@ export default function ActiveWorkoutScreen() {
   useEffect(() => () => {
     if (noticeTimer.current) clearTimeout(noticeTimer.current);
   }, []);
+
+  // Bodyweight exercises (library equipment "Bodyweight") show added load as "BW +10".
+  const exerciseKey = draft?.exercises.map((e) => e.exerciseId).join(',') ?? '';
+  const bodyweightIds = useMemo(() => {
+    try {
+      return bodyweightExerciseIds(getDb(), exerciseKey ? exerciseKey.split(',').map(Number) : []);
+    } catch {
+      return new Set<number>();
+    }
+  }, [exerciseKey]);
 
   const showNotice = (text: string, undo = false) => {
     if (noticeTimer.current) clearTimeout(noticeTimer.current);
@@ -107,34 +126,34 @@ export default function ActiveWorkoutScreen() {
   const onToggle = (ex: DraftExercise, set: DraftSet) => {
     const result = activeWorkout.toggleDone(ex.exerciseId, set.key);
     if (!result.ok) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      haptics.warning();
       showNotice(result.error);
       return;
     }
     if (!result.done) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      haptics.step();
       return;
     }
     if (result.prLabel) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      haptics.success();
       setFlashKey(set.key);
       setTimeout(() => setFlashKey((k) => (k === set.key ? null : k)), 1200);
       showNotice(`New PR · ${ex.name} · ${result.prLabel}`);
     } else {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      haptics.setDone();
     }
     if (settings.autoStartRest) restTimer.start(result.restSeconds ?? settings.defaultRestSeconds, ex.name);
   };
 
   const onDeleteSet = (ex: DraftExercise, set: DraftSet) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+    haptics.destructive();
     activeWorkout.removeSet(ex.exerciseId, set.key);
     showNotice('Set deleted', true);
   };
 
   const cycleType = (ex: DraftExercise, set: DraftSet) => {
     const next = SET_TYPES[(SET_TYPES.indexOf(set.setType) + 1) % SET_TYPES.length];
-    Haptics.selectionAsync().catch(() => {});
+    haptics.selection();
     activeWorkout.setType(ex.exerciseId, set.key, next);
   };
 
@@ -143,7 +162,7 @@ export default function ActiveWorkoutScreen() {
     const ex = draft.exercises.find((e) => e.exerciseId === focus.exerciseId);
     const set = ex?.sets.find((s) => s.key === focus.key);
     if (!ex || !set) return;
-    Haptics.selectionAsync().catch(() => {});
+    haptics.step();
     if (focus.field === 'reps') {
       const reps = Math.max(0, (parseInt(set.reps, 10) || 0) + direction);
       activeWorkout.updateSet(ex.exerciseId, set.key, { reps: String(reps) });
@@ -214,7 +233,8 @@ export default function ActiveWorkoutScreen() {
       return;
     }
     restTimer.stopAll();
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    haptics.success();
+    armReviewPrompt();
     router.back();
     showSummary(result.summary);
     if (before.session?.routineId != null && before.draft) offerRoutineUpdate(before.session.routineId, before.session.name, before.draft);
@@ -256,15 +276,38 @@ export default function ActiveWorkoutScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.headerBtn} accessibilityRole="button" accessibilityLabel="Minimise workout" hitSlop={8}>
-          <Text style={styles.chevron}>⌄</Text>
-        </Pressable>
+        <IconButton icon="minimise" label="Minimise workout" onPress={() => router.back()} size={30} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.title} numberOfLines={1}>{session.name}</Text>
+          {renaming !== null ? (
+            <TextInput
+              style={[styles.title, styles.titleInput]}
+              value={renaming}
+              onChangeText={setRenaming}
+              autoFocus
+              selectTextOnFocus
+              returnKeyType="done"
+              maxLength={60}
+              onSubmitEditing={() => setRenaming(null)}
+              onBlur={() => {
+                if (renaming.trim() !== '') activeWorkout.rename(renaming);
+                setRenaming(null);
+              }}
+              accessibilityLabel="Workout name"
+            />
+          ) : (
+            <Pressable
+              onPress={() => setRenaming(session.name)}
+              accessibilityRole="button"
+              accessibilityLabel={`Workout name, ${session.name}`}
+              accessibilityHint="Double-tap to rename"
+            >
+              <Text style={styles.title} numberOfLines={1} maxFontSizeMultiplier={maxFontScale.control}>{session.name}</Text>
+            </Pressable>
+          )}
           <Elapsed startedAt={session.startedAt} />
         </View>
         <Pressable onPress={onFinish} style={styles.finishBtn} accessibilityRole="button" accessibilityLabel="Finish workout">
-          <Text style={styles.finishText}>FINISH</Text>
+          <Text style={styles.finishText} maxFontSizeMultiplier={maxFontScale.control}>FINISH</Text>
         </Pressable>
       </View>
 
@@ -280,6 +323,7 @@ export default function ActiveWorkoutScreen() {
               ex={ex}
               unit={unit}
               previous={previous[ex.exerciseId] ?? []}
+              bodyweight={bodyweightIds.has(ex.exerciseId)}
               showRpe={settings.showRpe}
               hintsOn={settings.progressionHints}
               incrementKg={incrementKg}
@@ -388,13 +432,18 @@ function Elapsed({ startedAt }: { startedAt: string }) {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
-  return <Text style={styles.elapsed}>{formatClock((now - Date.parse(startedAt)) / 1000)}</Text>;
+  const seconds = (now - Date.parse(startedAt)) / 1000;
+  return (
+    <Text style={styles.elapsed} maxFontSizeMultiplier={maxFontScale.control} accessibilityLabel={`Elapsed ${formatClock(seconds)}`}>
+      {formatClock(seconds)}
+    </Text>
+  );
 }
 
 function AccessoryBtn({ label, onPress, a11y }: { label: string; onPress: () => void; a11y: string }) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.accessoryBtn, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={a11y}>
-      <Text style={styles.accessoryText}>{label}</Text>
+      <Text style={styles.accessoryText} maxFontSizeMultiplier={maxFontScale.control}>{label}</Text>
     </Pressable>
   );
 }
@@ -403,6 +452,8 @@ interface CardProps {
   ex: DraftExercise;
   unit: WeightUnit;
   previous: PreviousSet[];
+  /** Library equipment "Bodyweight": the weight is added load ("BW +10"). */
+  bodyweight: boolean;
   showRpe: boolean;
   hintsOn: boolean;
   incrementKg: number;
@@ -417,7 +468,7 @@ interface CardProps {
   onHint: (text: string) => void;
 }
 
-function ExerciseCard({ ex, unit, previous, showRpe, hintsOn, incrementKg, flashKey, notesOpen, onMenu, onToggle, onDelete, onCycleType, onFocus, onBlur, onHint }: CardProps) {
+function ExerciseCard({ ex, unit, previous, bodyweight, showRpe, hintsOn, incrementKg, flashKey, notesOpen, onMenu, onToggle, onDelete, onCycleType, onFocus, onBlur, onHint }: CardProps) {
   const hint = hintsOn ? progressionHint(previous, { repMin: ex.repMin, repMax: ex.repMax }, incrementKg) : null;
   const hasOpenWorking = ex.sets.some((s) => !s.done && s.setType !== 'warmup');
   let workingNumber = 0;
@@ -436,9 +487,7 @@ function ExerciseCard({ ex, unit, previous, showRpe, hintsOn, incrementKg, flash
             {ex.restSeconds ? ` · rest ${formatClock(ex.restSeconds)}` : ''}
           </Text>
         </View>
-        <Pressable onPress={onMenu} style={styles.menuBtn} accessibilityRole="button" accessibilityLabel={`Options for ${ex.name}`} hitSlop={6}>
-          <Text style={styles.menuText}>⋯</Text>
-        </Pressable>
+        <IconButton icon="more" label={`Options for ${ex.name}`} onPress={onMenu} size={24} />
       </View>
 
       {notesOpen && (
@@ -457,7 +506,7 @@ function ExerciseCard({ ex, unit, previous, showRpe, hintsOn, incrementKg, flash
         <Pressable
           style={styles.hint}
           onPress={() => {
-            Haptics.selectionAsync().catch(() => {});
+            haptics.selection();
             for (const s of ex.sets) {
               if (!s.done && s.setType !== 'warmup') activeWorkout.fillSet(ex.exerciseId, s.key, hint.weightKg, String(hint.reps));
             }
@@ -465,21 +514,24 @@ function ExerciseCard({ ex, unit, previous, showRpe, hintsOn, incrementKg, flash
           }}
           onLongPress={() => onHint(hint.reason)}
           accessibilityRole="button"
-          accessibilityLabel={`Suggestion: ${fmtSet(hint.weightKg, hint.reps, unit)}. ${hint.reason} Tap to fill.`}
+          accessibilityLabel={`Suggestion: ${fmtSet(hint.weightKg, hint.reps, unit, bodyweight)}. ${hint.reason} Tap to fill.`}
         >
-          <Text style={styles.hintText}>
-            {`${hint.increase ? '▲ ' : ''}Try ${hint.weightKg > 0 ? formatWeight(hint.weightKg, unit) : 'BW'} × ${hint.repsLabel}`}
+          {hint.increase && <Icon name="increase" size={16} color={colors.accent} />}
+          <Text style={styles.hintText} maxFontSizeMultiplier={maxFontScale.control}>
+            {`Try ${hint.weightKg > 0 ? `${bodyweight ? 'BW +' : ''}${formatWeight(hint.weightKg, unit)}` : 'BW'} × ${hint.repsLabel}`}
           </Text>
         </Pressable>
       )}
 
-      <View style={styles.tableHead}>
-        <Text style={[styles.th, styles.colSet]}>SET</Text>
-        <Text style={[styles.th, styles.colPrev]}>PREVIOUS</Text>
-        <Text style={[styles.th, styles.colInput]}>{unit.toUpperCase()}</Text>
-        <Text style={[styles.th, styles.colInput]}>REPS</Text>
-        {showRpe && <Text style={[styles.th, styles.colRpe]}>RPE</Text>}
-        <Text style={[styles.th, styles.colDone]}>✓</Text>
+      <View style={styles.tableHead} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <Text style={[styles.th, styles.colSet]} maxFontSizeMultiplier={maxFontScale.dense}>SET</Text>
+        <Text style={[styles.th, styles.colPrev]} maxFontSizeMultiplier={maxFontScale.dense}>PREVIOUS</Text>
+        <Text style={[styles.th, styles.colInput]} maxFontSizeMultiplier={maxFontScale.dense}>{`${bodyweight ? '+' : ''}${unit.toUpperCase()}`}</Text>
+        <Text style={[styles.th, styles.colInput]} maxFontSizeMultiplier={maxFontScale.dense}>REPS</Text>
+        {showRpe && <Text style={[styles.th, styles.colRpe]} maxFontSizeMultiplier={maxFontScale.dense}>RPE</Text>}
+        <View style={[styles.colDone, { alignItems: 'center' }]}>
+          <Icon name="check" size={14} color={colors.textTertiary} />
+        </View>
       </View>
 
       {ex.sets.map((set, i) => {
@@ -499,23 +551,31 @@ function ExerciseCard({ ex, unit, previous, showRpe, hintsOn, incrementKg, flash
             )}
             onSwipeableOpen={() => onDelete(set)}
           >
-            <View style={[styles.row, set.done && styles.rowDone, flashKey === set.key && styles.rowFlash]}>
+            <View style={[styles.row, set.done && styles.rowDone]}>
+              {flashKey === set.key && (
+                // PR: a gold flash that fades out (no animation under Reduce Motion).
+                <Animated.View exiting={flashOut} pointerEvents="none" style={styles.rowFlash}>
+                  <View style={styles.rowFlashFill} />
+                </Animated.View>
+              )}
               <Pressable
                 style={[styles.colSet, styles.typeChip]}
                 onPress={() => onCycleType(set)}
                 accessibilityRole="button"
                 accessibilityLabel={`Set ${label}, ${set.setType}. Tap to change type.`}
               >
-                <Text style={[styles.typeText, set.setType !== 'working' && styles.typeTextSpecial]}>{label}</Text>
+                <Text style={[styles.typeText, set.setType !== 'working' && styles.typeTextSpecial]} maxFontSizeMultiplier={maxFontScale.dense}>{label}</Text>
               </Pressable>
               <Pressable
                 style={styles.colPrev}
                 disabled={!prev || set.done}
                 onPress={() => prev && activeWorkout.fillSet(ex.exerciseId, set.key, prev.weight, String(prev.reps))}
                 accessibilityRole="button"
-                accessibilityLabel={prev ? `Previous ${fmtSet(prev.weight, prev.reps, unit)}. Tap to fill.` : 'No previous set'}
+                accessibilityLabel={prev ? `Previous ${fmtSet(prev.weight, prev.reps, unit, bodyweight)} ${unit}. Tap to fill.` : 'No previous set'}
               >
-                <Text style={styles.prev} numberOfLines={1}>{prev ? fmtSet(prev.weight, prev.reps, unit) : '—'}</Text>
+                <Text style={styles.prev} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} maxFontSizeMultiplier={maxFontScale.dense}>
+                  {prev ? fmtSet(prev.weight, prev.reps, unit, bodyweight) : '—'}
+                </Text>
               </Pressable>
               <TextInput
                 style={[styles.input, styles.colInput]}
@@ -527,7 +587,8 @@ function ExerciseCard({ ex, unit, previous, showRpe, hintsOn, incrementKg, flash
                 onFocus={() => onFocus(set.key, 'weight')}
                 onBlur={() => onBlur(set.key, 'weight')}
                 onChangeText={(t) => activeWorkout.updateSet(ex.exerciseId, set.key, { weightText: t })}
-                accessibilityLabel={`Weight in ${unit}, set ${label}`}
+                maxFontSizeMultiplier={maxFontScale.dense}
+                accessibilityLabel={bodyweight ? `Added weight in ${unit}, set ${label}. Blank is bodyweight.` : `Weight in ${unit}, set ${label}`}
               />
               <TextInput
                 style={[styles.input, styles.colInput]}
@@ -539,6 +600,7 @@ function ExerciseCard({ ex, unit, previous, showRpe, hintsOn, incrementKg, flash
                 onFocus={() => onFocus(set.key, 'reps')}
                 onBlur={() => onBlur(set.key, 'reps')}
                 onChangeText={(t) => activeWorkout.updateSet(ex.exerciseId, set.key, { reps: t.replace(/[^0-9]/g, '') })}
+                maxFontSizeMultiplier={maxFontScale.dense}
                 accessibilityLabel={`Reps, set ${label}`}
               />
               {showRpe && (
@@ -550,6 +612,7 @@ function ExerciseCard({ ex, unit, previous, showRpe, hintsOn, incrementKg, flash
                   keyboardType="decimal-pad"
                   selectTextOnFocus
                   onChangeText={(t) => activeWorkout.updateSet(ex.exerciseId, set.key, { rpe: t })}
+                  maxFontSizeMultiplier={maxFontScale.dense}
                   accessibilityLabel={`RPE, set ${label}`}
                 />
               )}
@@ -561,7 +624,11 @@ function ExerciseCard({ ex, unit, previous, showRpe, hintsOn, incrementKg, flash
                 accessibilityLabel={`Set ${label} done`}
                 hitSlop={4}
               >
-                <Text style={styles.checkText}>{set.done ? '✓' : ''}</Text>
+                {set.done && (
+                  <Animated.View entering={tickIn}>
+                    <Icon name="check" size={24} color={colors.onAccent} />
+                  </Animated.View>
+                )}
               </Pressable>
             </View>
           </ReanimatedSwipeable>
@@ -569,7 +636,7 @@ function ExerciseCard({ ex, unit, previous, showRpe, hintsOn, incrementKg, flash
       })}
 
       <Pressable style={styles.addSet} onPress={() => activeWorkout.addSet(ex.exerciseId)} accessibilityRole="button" accessibilityLabel={`Add set to ${ex.name}`}>
-        <Text style={styles.addSetText}>+ ADD SET</Text>
+        <Text style={styles.addSetText} maxFontSizeMultiplier={maxFontScale.control}>+ ADD SET</Text>
       </Pressable>
     </View>
   );
@@ -588,11 +655,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: colors.border,
   },
-  headerBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  chevron: { fontSize: 28, color: colors.textSecondary, lineHeight: 30 },
   title: { ...typography.title, color: colors.textPrimary },
+  titleInput: { paddingVertical: 0, borderBottomWidth: 1, borderColor: colors.accent },
   elapsed: { ...typography.numericSmall, color: colors.accent },
-  finishBtn: { backgroundColor: colors.accent, borderRadius: radii.md, paddingHorizontal: spacing.lg, minHeight: 44, justifyContent: 'center' },
+  finishBtn: { backgroundColor: colors.accent, borderRadius: radii.md, paddingHorizontal: spacing.lg, minHeight: touchTarget, justifyContent: 'center' },
   finishText: { ...typography.label, fontSize: 13, color: colors.onAccent, letterSpacing: 2 },
   scroll: { padding: spacing.md, paddingBottom: spacing.xxl },
   card: {
@@ -607,8 +673,6 @@ const styles = StyleSheet.create({
   exName: { ...typography.heading, color: colors.textPrimary },
   variation: { ...typography.caption, color: colors.accent, fontWeight: '700' },
   sub: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
-  menuBtn: { width: 44, height: 36, alignItems: 'center', justifyContent: 'center' },
-  menuText: { fontSize: 22, color: colors.textSecondary, fontWeight: '900' },
   notes: {
     ...typography.body,
     color: colors.textPrimary,
@@ -620,27 +684,31 @@ const styles = StyleSheet.create({
     minHeight: 36,
   },
   hint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
     alignSelf: 'flex-start',
     borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: colors.accent,
     paddingHorizontal: spacing.md,
-    minHeight: 32,
+    minHeight: 36,
     justifyContent: 'center',
     marginBottom: spacing.sm,
   },
   hintText: { ...typography.caption, color: colors.accent, fontWeight: '700' },
   tableHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
   th: { ...typography.label, fontSize: 10, color: colors.textTertiary, textAlign: 'center' },
-  colSet: { width: 36 },
+  colSet: { width: 40 },
   colPrev: { flex: 1.3, justifyContent: 'center' },
   colInput: { flex: 1 },
   colRpe: { width: 44 },
-  colDone: { width: 44 },
+  colDone: { width: 52 },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingVertical: 3, backgroundColor: colors.surface1 },
   rowDone: { backgroundColor: colors.successSurface },
-  rowFlash: { backgroundColor: colors.accent },
-  typeChip: { height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: radii.sm, backgroundColor: colors.surface2 },
+  rowFlash: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  rowFlashFill: { flex: 1, backgroundColor: colors.accent, opacity: 0.85, borderRadius: radii.sm },
+  typeChip: { height: touchTarget, alignItems: 'center', justifyContent: 'center', borderRadius: radii.sm, backgroundColor: colors.surface2 },
   typeText: { ...typography.numeric, color: colors.textPrimary },
   typeTextSpecial: { color: colors.accent },
   prev: { ...typography.numericSmall, color: colors.textTertiary, textAlign: 'center' },
@@ -649,16 +717,16 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     backgroundColor: colors.surface3,
     borderRadius: radii.sm,
-    height: 40,
+    height: touchTarget,
     paddingVertical: 0,
     textAlign: 'center',
   },
-  check: { height: 40, borderRadius: radii.sm, backgroundColor: colors.surface3, alignItems: 'center', justifyContent: 'center' },
+  // Large done box (gym ergonomics): 52 × 44 pt plus hitSlop.
+  check: { height: touchTarget, borderRadius: radii.sm, backgroundColor: colors.surface3, alignItems: 'center', justifyContent: 'center' },
   checkOn: { backgroundColor: colors.success },
-  checkText: { fontSize: 20, fontWeight: '900', color: colors.onAccent },
   swipeDelete: { backgroundColor: colors.danger, justifyContent: 'center', paddingHorizontal: spacing.lg, borderRadius: radii.sm, marginVertical: 3 },
   swipeDeleteText: { ...typography.bodyStrong, color: colors.onAccent },
-  addSet: { marginTop: spacing.sm, minHeight: 40, borderRadius: radii.sm, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.borderStrong, alignItems: 'center', justifyContent: 'center' },
+  addSet: { marginTop: spacing.sm, minHeight: touchTarget, borderRadius: radii.sm, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.borderStrong, alignItems: 'center', justifyContent: 'center' },
   addSetText: { ...typography.label, color: colors.textSecondary },
   addExercise: { minHeight: 48, borderRadius: radii.md, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.accent, alignItems: 'center', justifyContent: 'center', marginTop: spacing.sm },
   addExerciseText: { ...typography.label, fontSize: 13, color: colors.accent },

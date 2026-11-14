@@ -103,7 +103,7 @@ export default function CoverageView() {
       <View style={styles.legend} accessible accessibilityLabel={`Colour shows weekly sets: ${COVERAGE_BANDS.join(', ')}. A dashed red outline means no exercise for that muscle in your routines yet.`}>
         {COVERAGE_BANDS.map((band, i) => (
           <View key={band} style={styles.legendItem}>
-            <View style={[styles.swatch, i === 0 ? { backgroundColor: colors.surface3 } : { backgroundColor: colors.accent, opacity: LEVEL_OPACITY[i as CoverageLevel] }]} />
+            <View style={[styles.swatch, i === 0 ? { backgroundColor: colors.border } : { backgroundColor: colors.accent, opacity: LEVEL_OPACITY[i as CoverageLevel] }]} />
             <Text style={styles.legendText}>{band}</Text>
           </View>
         ))}
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   legend: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, justifyContent: 'center' },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   swatch: { width: 14, height: 14, borderRadius: 3 },
-  swatchMissing: { borderWidth: 1.5, borderColor: colors.danger, borderStyle: 'dashed', backgroundColor: colors.surface3 },
+  swatchMissing: { borderWidth: 1.5, borderColor: colors.danger, borderStyle: 'dashed', backgroundColor: colors.border },
   legendText: { ...typography.caption, color: colors.textSecondary },
   section: { ...typography.label, color: colors.textSecondary, marginTop: spacing.md, marginBottom: spacing.xs },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

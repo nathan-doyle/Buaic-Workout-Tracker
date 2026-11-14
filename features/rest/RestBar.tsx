@@ -5,14 +5,15 @@
  */
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
 
 import { REST_PRESETS } from '../../db/settings';
 import { formatClock, remainingSeconds, restProgress } from '../../lib/restTimer';
-import { colors, radii, spacing, typography } from '../../theme';
+import { colors, maxFontScale, radii, spacing, typography } from '../../theme';
+import { haptics } from '../ui/haptics';
+import { Icon, type IconKey } from '../ui/Icon';
 import { restTimer, useRestTimer } from './restTimer';
 
-const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+const tap = haptics.step;
 
 export default function RestBar({ onPress }: { onPress?: () => void }) {
   const { timer, now } = useRestTimer();
@@ -40,7 +41,7 @@ export default function RestBar({ onPress }: { onPress?: () => void }) {
               }}
             />
           ))}
-          <Btn label="✕" a11y="Close presets" onPress={() => setShowPresets(false)} />
+          <Btn icon="close" a11y="Close presets" onPress={() => setShowPresets(false)} />
         </View>
       ) : (
         <View style={styles.row}>
@@ -51,30 +52,30 @@ export default function RestBar({ onPress }: { onPress?: () => void }) {
             accessibilityRole="button"
             accessibilityLabel={done ? 'Rest over' : `Rest, ${seconds} seconds left. Tap for presets.`}
           >
-            <Text style={styles.label} numberOfLines={1}>
+            <Text style={styles.label} numberOfLines={1} maxFontSizeMultiplier={maxFontScale.dense}>
               {done ? 'REST OVER' : timer.status === 'paused' ? 'PAUSED' : `REST${timer.label ? ` · ${timer.label}` : ''}`}
             </Text>
-            <Text style={[styles.time, done && styles.timeDone]}>{done ? 'GO' : formatClock(seconds)}</Text>
+            <Text style={[styles.time, done && styles.timeDone]} maxFontSizeMultiplier={maxFontScale.dense}>{done ? 'GO' : formatClock(seconds)}</Text>
           </Pressable>
           {!done && (
             <>
               <Btn label="−15" a11y="Remove 15 seconds" onPress={() => (tap(), restTimer.adjust(-15))} />
               <Btn label="+15" a11y="Add 15 seconds" onPress={() => (tap(), restTimer.adjust(15))} />
               <Btn
-                label={timer.status === 'paused' ? '▶' : 'II'}
+                icon={timer.status === 'paused' ? 'play' : 'pause'}
                 a11y={timer.status === 'paused' ? 'Resume rest' : 'Pause rest'}
                 onPress={() => (tap(), restTimer.togglePause())}
               />
             </>
           )}
-          <Btn label={done ? '✕' : 'Skip'} a11y={done ? 'Dismiss' : 'Skip rest'} onPress={() => (tap(), restTimer.skip())} />
+          <Btn {...(done ? { icon: 'close' as const } : { label: 'Skip' })} a11y={done ? 'Dismiss' : 'Skip rest'} onPress={() => (tap(), restTimer.skip())} />
         </View>
       )}
     </View>
   );
 }
 
-function Btn({ label, a11y, onPress }: { label: string; a11y: string; onPress: () => void }) {
+function Btn({ label, icon, a11y, onPress }: { label?: string; icon?: IconKey; a11y: string; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
@@ -83,7 +84,11 @@ function Btn({ label, a11y, onPress }: { label: string; a11y: string; onPress: (
       accessibilityLabel={a11y}
       hitSlop={4}
     >
-      <Text style={styles.btnText}>{label}</Text>
+      {icon ? (
+        <Icon name={icon} size={22} color={colors.textPrimary} />
+      ) : (
+        <Text style={styles.btnText} maxFontSizeMultiplier={maxFontScale.dense}>{label}</Text>
+      )}
     </Pressable>
   );
 }

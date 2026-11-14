@@ -21,9 +21,10 @@ import {
 import { formatLocalDate } from '../../lib/dates';
 import { formatDuration } from '../../lib/stats';
 import { formatVolume } from '../../lib/units';
-import { colors, radii, spacing, typography } from '../../theme';
+import { colors, maxFontScale, radii, spacing, typography } from '../../theme';
 import { useSettings } from '../settings/settingsStore';
 import ActionSheet, { type SheetAction } from '../ui/ActionSheet';
+import { Icon } from '../ui/Icon';
 import { activeWorkout } from '../workout/activeWorkout';
 
 type Filter = { kind: 'all' } | { kind: 'routine'; id: number; name: string } | { kind: 'exercise'; id: number; name: string };
@@ -88,13 +89,15 @@ export default function HistoryScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         <Chip label="All" active={filter.kind === 'all'} onPress={() => setFilter({ kind: 'all' })} />
         <Chip
-          label={filter.kind === 'routine' ? `Routine: ${filter.name}` : 'Routine ▾'}
+          label={filter.kind === 'routine' ? `Routine: ${filter.name}` : 'Routine'}
+          dropdown
           active={filter.kind === 'routine'}
           onPress={() => setPicker('routine')}
           disabled={routines.length === 0}
         />
         <Chip
-          label={filter.kind === 'exercise' ? `Exercise: ${filter.name}` : 'Exercise ▾'}
+          label={filter.kind === 'exercise' ? `Exercise: ${filter.name}` : 'Exercise'}
+          dropdown
           active={filter.kind === 'exercise'}
           onPress={() => setPicker('exercise')}
           disabled={exercises.length === 0}
@@ -164,7 +167,7 @@ function dateText(s: SessionListItem): string {
   return s.localDate ? formatLocalDate(s.localDate, undefined, options) : new Date(s.dateCompleted).toLocaleDateString(undefined, options);
 }
 
-function Chip({ label, active, onPress, disabled }: { label: string; active: boolean; onPress: () => void; disabled?: boolean }) {
+function Chip({ label, active, onPress, disabled, dropdown }: { label: string; active: boolean; onPress: () => void; disabled?: boolean; dropdown?: boolean }) {
   return (
     <Pressable
       onPress={onPress}
@@ -172,8 +175,10 @@ function Chip({ label, active, onPress, disabled }: { label: string; active: boo
       style={[styles.chip, active && styles.chipActive, disabled && { opacity: 0.4 }]}
       accessibilityRole="button"
       accessibilityState={{ selected: active, disabled }}
+      accessibilityHint={dropdown ? 'Opens a list to filter by' : undefined}
     >
-      <Text style={[styles.chipText, active && styles.chipTextActive]} numberOfLines={1}>{label}</Text>
+      <Text style={[styles.chipText, active && styles.chipTextActive]} numberOfLines={1} maxFontSizeMultiplier={maxFontScale.control}>{label}</Text>
+      {dropdown && !active && <Icon name="dropdown" size={18} color={colors.textSecondary} />}
     </Pressable>
   );
 }
@@ -192,7 +197,7 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md },
   headerWrap: { gap: spacing.xs },
   chips: { gap: spacing.sm, paddingBottom: spacing.xs },
-  chip: { minHeight: 36, paddingHorizontal: spacing.md, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface2, justifyContent: 'center', maxWidth: 240 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 40, paddingHorizontal: spacing.md, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface2, justifyContent: 'center', maxWidth: 240 },
   chipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   chipText: { ...typography.caption, color: colors.textSecondary, fontWeight: '700' },
   chipTextActive: { color: colors.onAccent },

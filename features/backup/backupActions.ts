@@ -5,7 +5,8 @@
  */
 import Constants from 'expo-constants';
 import * as DocumentPicker from 'expo-document-picker';
-import { File, Paths } from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
+import * as SQLite from 'expo-sqlite';
 import * as Sharing from 'expo-sharing';
 
 import {
@@ -15,9 +16,11 @@ import {
   importBackup,
   validateBackup,
 } from '../../db/backupJson';
-import { getDb, siblingPath } from '../../db/database';
+import { databaseFilePath, getDb, siblingPath, toFileUri } from '../../db/database';
+import { expoAdapter } from '../../db/expoAdapter';
 import { createVerifiedCopy } from '../../db/migrate';
 import { formatLocalDate, todayLocalDate } from '../../lib/dates';
+import { pickRestorePoints, type RestorePoint, restorePointName } from '../../lib/restorePoints';
 import { settingsStore } from '../settings/settingsStore';
 import { bumpDataRevision } from './dataRevision';
 
@@ -75,8 +78,7 @@ export async function pickBackup(): Promise<PickedBackup> {
  */
 export function applyBackup(backup: BackupFile): void {
   const db = getDb();
-  const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15);
-  const snapshot = siblingPath(`iron_and_stone.pre-import-${stamp}.db`);
+  const snapshot = siblingPath(restorePointName(new Date()));
   if (!snapshot) throw new Error('The database location is unknown.');
   createVerifiedCopy(db, snapshot);
   importBackup(db, backup);
@@ -106,4 +108,55 @@ export function describeBackup(summary: BackupSummary): string {
     'Importing replaces all workouts, exercises, splits and settings on this phone. ' +
     'A copy of your current data is saved first. Sets you have not finished saving are discarded.'
   );
+}
+
+// ==========================================
+// RESTORE POINTS (Phase 5): the verified copies each import writes first.
+// ==========================================
+
+/** Restore points next to the database, newest first. */
+export function listRestorePoints(): RestorePoint[] {
+  const path = databaseFilePath();
+  if (!path) return [];
+  const dir = new Directory(toFileUri(path.slice(0, path.lastIndexOf('/'))));
+  const files = dir
+    .list()
+    .filter((entry): entry is File => entry instanceof File)
+    .map((f) => ({ name: f.name, size: f.size ?? 0 }));
+  return pickRestorePoints(files);
+}
+
+/**
+ * Reads a restore point into the backup format and checks it against the current
+ * schema, so restoring goes through the same preview + import as a JSON backup
+ * (which first saves a restore point of the current data).
+ */
+export function readRestorePoint(point: RestorePoint): PickedBackup {
+  let snapshot: SQLite.SQLiteDatabase | null = null;
+  try {
+    snapshot = SQLite.openDatabaseSync(point.name, { useNewConnection: true });
+    const file = exportDatabase(expoAdapter(snapshot), { appVersion: null, now: point.createdAt });
+    const validation = validateBackup(getDb(), file);
+    return validation.ok
+      ? { status: 'valid', backup: validation.backup, summary: validation.summary }
+      : { status: 'invalid', error: validation.error };
+  } catch (error) {
+    return { status: 'invalid', error: error instanceof Error ? error.message : String(error) };
+  } finally {
+    try {
+      snapshot?.closeSync();
+    } catch {
+      // Already closed.
+    }
+  }
+}
+
+/** Deletes a restore point file (and any journal files beside it). */
+export function deleteRestorePoint(point: RestorePoint): void {
+  for (const suffix of ['', '-wal', '-shm', '-journal']) {
+    const path = siblingPath(`${point.name}${suffix}`);
+    if (!path) continue;
+    const file = new File(toFileUri(path));
+    if (file.exists) file.delete();
+  }
 }

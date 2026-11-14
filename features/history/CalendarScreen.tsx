@@ -13,7 +13,8 @@ import { type CalendarDayInfo, getCalendarDays, getSessionTotals } from '../../d
 import { addMonths, dayOfWeek, formatLocalDate, todayLocalDate } from '../../lib/dates';
 import { monthTotals, type SessionTotal } from '../../lib/stats';
 import { formatVolume } from '../../lib/units';
-import { colors, radii, spacing, typography } from '../../theme';
+import { colors, maxFontScale, radii, spacing, typography } from '../../theme';
+import { Icon } from '../ui/Icon';
 import { useSettings } from '../settings/settingsStore';
 
 export default function CalendarScreen() {
@@ -70,7 +71,7 @@ export default function CalendarScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Pressable onPress={() => changeMonth(-1)} style={styles.nav} accessibilityRole="button" accessibilityLabel="Previous month" hitSlop={8}>
-          <Text style={styles.navText}>◄</Text>
+          <Icon name="back" size={28} color={colors.accent} />
         </Pressable>
         <Text style={styles.month} accessibilityRole="header">{monthName}</Text>
         <Pressable
@@ -81,7 +82,7 @@ export default function CalendarScreen() {
           accessibilityLabel="Next month"
           hitSlop={8}
         >
-          <Text style={styles.navText}>►</Text>
+          <Icon name="forward" size={28} color={colors.accent} />
         </Pressable>
       </View>
 
@@ -94,7 +95,7 @@ export default function CalendarScreen() {
 
       <View style={styles.weekRow}>
         {weekLabels.map((d, i) => (
-          <Text key={i} style={styles.weekDay}>{d}</Text>
+          <Text key={i} style={styles.weekDay} maxFontSizeMultiplier={maxFontScale.dense}>{d}</Text>
         ))}
       </View>
       <View style={styles.grid}>
@@ -113,8 +114,8 @@ export default function CalendarScreen() {
               accessibilityLabel={label}
             >
               <View style={[styles.day, info ? styles.dayWorkout : styles.dayEmpty, isToday && styles.dayToday, selected === date && styles.daySelected]}>
-                <Text style={[styles.dayText, info && styles.dayTextWorkout]}>{Number(date.slice(8))}</Text>
-                {info?.hasBig3Pr ? <Text style={styles.big3}>!</Text> : info?.hasPr ? <View style={styles.prDot} /> : null}
+                <Text style={[styles.dayText, info && styles.dayTextWorkout]} maxFontSizeMultiplier={maxFontScale.dense}>{Number(date.slice(8))}</Text>
+                {info?.hasBig3Pr ? <Text style={styles.big3} maxFontSizeMultiplier={maxFontScale.dense}>!</Text> : info?.hasPr ? <View style={styles.prDot} /> : null}
               </View>
             </Pressable>
           );
@@ -142,7 +143,7 @@ export default function CalendarScreen() {
               accessibilityLabel={`${s.name}, ${s.setCount} sets. Open workout.`}
             >
               <Text style={styles.sessionName}>{s.name}</Text>
-              <Text style={styles.sessionSub}>{`${s.setCount} sets · ${formatVolume(s.volumeKg, unit)} ${unit}  ›`}</Text>
+              <Text style={styles.sessionSub}>{`${s.setCount} sets · ${formatVolume(s.volumeKg, unit)} ${unit}`}</Text>
             </Pressable>
           ))}
         </View>
@@ -161,8 +162,8 @@ function lastDayOf(month: string): number {
 function Total({ label, value }: { label: string; value: string }) {
   return (
     <View style={{ flex: 1 }}>
-      <Text style={styles.totalLabel}>{label}</Text>
-      <Text style={styles.totalValue} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      <Text style={styles.totalLabel} maxFontSizeMultiplier={maxFontScale.dense}>{label}</Text>
+      <Text style={styles.totalValue} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={maxFontScale.control}>{value}</Text>
     </View>
   );
 }

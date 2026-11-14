@@ -7,11 +7,12 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 
-import AddExerciseModal from '../../components/AddExerciseModal';
+import AddExerciseModal from './AddExerciseModal';
 import { getDb } from '../../db/database';
 import { deleteExerciseIfUnused, type LibraryExercise, listExercises, setExerciseArchived } from '../../db/routines';
 import { filterExercises } from '../../lib/exerciseSearch';
 import { colors, radii, spacing, typography } from '../../theme';
+import { Icon } from '../ui/Icon';
 import ActionSheet, { type SheetAction } from '../ui/ActionSheet';
 
 export default function LibraryScreen() {
@@ -135,7 +136,7 @@ export default function LibraryScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Options for ${item.name}`}
             >
-              <Text style={styles.chev}>⋯</Text>
+              <Icon name="more" size={22} />
             </Pressable>
           </Pressable>
         )}
@@ -168,6 +169,5 @@ const styles = StyleSheet.create({
   name: { ...typography.bodyStrong, color: colors.textPrimary },
   variation: { ...typography.caption, color: colors.accent },
   sub: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
-  chev: { fontSize: 20, color: colors.textSecondary, paddingLeft: spacing.md },
   menuBtn: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
 });

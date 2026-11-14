@@ -1,3 +1,12 @@
-import LibraryScreen from '../../features/library/LibraryScreen';
+import React from 'react';
 
-export default LibraryScreen;
+import LibraryScreen from '../../features/library/LibraryScreen';
+import TabScreen from '../../features/shell/TabScreen';
+
+export default function ExercisesTab() {
+  return (
+    <TabScreen>
+      <LibraryScreen />
+    </TabScreen>
+  );
+}

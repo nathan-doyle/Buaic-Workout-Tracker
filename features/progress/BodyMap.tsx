@@ -23,7 +23,7 @@ function Figure({ side, levels, missing, selected, onSelect }: BodyMapProps & { 
   const regions = REGIONS[side];
   const half = (mirror: boolean) => (
     <G transform={mirror ? 'translate(200,0) scale(-1,1)' : undefined}>
-      <Path d={SILHOUETTE} fill={colors.surface2} />
+      <Path d={SILHOUETTE} fill={colors.surface2} stroke={colors.borderStrong} strokeWidth={1} strokeLinejoin="round" />
       {regions.map((r) => {
         const level = levels[r.muscle] ?? 0;
         const isMissing = level === 0 && missing.has(r.muscle);
@@ -32,11 +32,13 @@ function Figure({ side, levels, missing, selected, onSelect }: BodyMapProps & { 
           <Path
             key={r.muscle}
             d={r.d}
-            fill={level === 0 ? colors.surface3 : colors.accent}
+            // Phase 5 design pass: idle muscles a step lighter than the body so every region reads.
+            fill={level === 0 ? colors.border : colors.accent}
             fillOpacity={level === 0 ? 1 : LEVEL_OPACITY[level]}
             stroke={isSelected ? colors.textPrimary : isMissing ? colors.danger : colors.background}
             strokeWidth={isSelected ? 2 : isMissing ? 1.5 : 1}
             strokeDasharray={isMissing && !isSelected ? '3,2' : undefined}
+            strokeLinejoin="round"
             onPress={() => onSelect(r.muscle)}
           />
         );
@@ -48,7 +50,7 @@ function Figure({ side, levels, missing, selected, onSelect }: BodyMapProps & { 
       <Text style={styles.figureLabel}>{side === 'front' ? 'FRONT' : 'BACK'}</Text>
       <View style={styles.canvas}>
         <Svg viewBox="0 0 200 420" width="100%" height="100%">
-          <Circle cx={100} cy={30} r={17} fill={colors.surface2} />
+          <Circle cx={100} cy={30} r={17} fill={colors.surface2} stroke={colors.borderStrong} strokeWidth={1} />
           {half(false)}
           {half(true)}
         </Svg>

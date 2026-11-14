@@ -10,6 +10,7 @@ import { getDb } from '../../db/database';
 import { addTemplate, TEMPLATES } from '../../db/library';
 import { createRoutine, duplicateRoutine, listRoutines, reorderRoutines, type RoutineSummary, setRoutineArchived } from '../../db/routines';
 import { colors, radii, spacing, typography } from '../../theme';
+import { Icon, type IconKey } from '../ui/Icon';
 import ActionSheet from '../ui/ActionSheet';
 
 export default function RoutinesScreen() {
@@ -73,7 +74,8 @@ export default function RoutinesScreen() {
           </Pressable>
         </View>
         <Pressable onPress={() => router.push('/library')} style={styles.libraryLink} accessibilityRole="button">
-          <Text style={styles.link}>Exercise library →</Text>
+          <Text style={styles.link}>Exercise library</Text>
+          <Icon name="next" size={18} color={colors.accent} />
         </Pressable>
 
         {active.map((r, i) => (
@@ -84,9 +86,9 @@ export default function RoutinesScreen() {
                 {r.exerciseCount === 0 ? 'No exercises' : `${r.exerciseCount} ${r.exerciseCount === 1 ? 'exercise' : 'exercises'} · ${r.exerciseNames}`}
               </Text>
             </Pressable>
-            <IconBtn label="▲" a11y={`Move ${r.name} up`} disabled={i === 0} onPress={() => move(i, i - 1)} />
-            <IconBtn label="▼" a11y={`Move ${r.name} down`} disabled={i === active.length - 1} onPress={() => move(i, i + 1)} />
-            <IconBtn label="⋯" a11y={`Options for ${r.name}`} onPress={() => setMenuFor(r)} />
+            <IconBtn icon="moveUp" a11y={`Move ${r.name} up`} disabled={i === 0} onPress={() => move(i, i - 1)} />
+            <IconBtn icon="moveDown" a11y={`Move ${r.name} down`} disabled={i === active.length - 1} onPress={() => move(i, i + 1)} />
+            <IconBtn icon="more" a11y={`Options for ${r.name}`} onPress={() => setMenuFor(r)} />
           </View>
         ))}
 
@@ -135,10 +137,10 @@ export default function RoutinesScreen() {
   );
 }
 
-function IconBtn({ label, a11y, onPress, disabled }: { label: string; a11y: string; onPress: () => void; disabled?: boolean }) {
+function IconBtn({ icon, a11y, onPress, disabled }: { icon: IconKey; a11y: string; onPress: () => void; disabled?: boolean }) {
   return (
     <Pressable onPress={onPress} disabled={disabled} style={styles.icon} accessibilityRole="button" accessibilityLabel={a11y} accessibilityState={{ disabled: !!disabled }}>
-      <Text style={[styles.iconText, disabled && styles.disabled]}>{label}</Text>
+      <Icon name={icon} size={22} color={disabled ? colors.textDisabled : colors.textSecondary} />
     </Pressable>
   );
 }
@@ -152,7 +154,7 @@ const styles = StyleSheet.create({
   primaryText: { ...typography.bodyStrong, color: colors.onAccent },
   secondary: { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border },
   secondaryText: { ...typography.bodyStrong, color: colors.textPrimary },
-  libraryLink: { minHeight: 44, justifyContent: 'center' },
+  libraryLink: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   link: { ...typography.bodyStrong, color: colors.accent },
   row: {
     flexDirection: 'row',
@@ -170,7 +172,5 @@ const styles = StyleSheet.create({
   sub: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
   section: { ...typography.label, color: colors.textSecondary, marginTop: spacing.lg },
   icon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  iconText: { fontSize: 18, color: colors.textSecondary, fontWeight: '900' },
-  disabled: { color: colors.textDisabled },
   restore: { paddingHorizontal: spacing.lg, minHeight: 44, justifyContent: 'center' },
 });

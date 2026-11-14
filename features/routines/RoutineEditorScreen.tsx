@@ -13,6 +13,7 @@ import { REST_PRESETS } from '../../db/settings';
 import { formatClock } from '../../lib/restTimer';
 import { moveItem } from '../../lib/workoutDraft';
 import { colors, radii, spacing, typography } from '../../theme';
+import { Icon, type IconKey } from '../ui/Icon';
 import { openExercisePicker } from '../library/pickExercise';
 import { useSettings } from '../settings/settingsStore';
 import ActionSheet from '../ui/ActionSheet';
@@ -149,16 +150,16 @@ export default function RoutineEditorScreen() {
                 </Text>
                 <Text style={styles.sub}>{item.muscle}</Text>
               </View>
-              <Small label="▲" a11y="Move up" disabled={i === 0} onPress={() => setItems((l) => moveItem(l, i, i - 1))} />
-              <Small label="▼" a11y="Move down" disabled={i === items.length - 1} onPress={() => setItems((l) => moveItem(l, i, i + 1))} />
-              <Small label="✕" a11y={`Remove ${item.name}`} onPress={() => setItems((l) => l.filter((_, j) => j !== i))} />
+              <Small icon="moveUp" a11y="Move up" disabled={i === 0} onPress={() => setItems((l) => moveItem(l, i, i - 1))} />
+              <Small icon="moveDown" a11y="Move down" disabled={i === items.length - 1} onPress={() => setItems((l) => moveItem(l, i, i + 1))} />
+              <Small icon="close" a11y={`Remove ${item.name}`} onPress={() => setItems((l) => l.filter((_, j) => j !== i))} />
             </View>
             <View style={styles.fields}>
               <Field label="SETS">
                 <View style={styles.stepper}>
-                  <Small label="−" a11y="Fewer sets" disabled={item.targetSets <= 1} onPress={() => update(i, { targetSets: item.targetSets - 1 })} />
+                  <Small icon="minus" a11y="Fewer sets" disabled={item.targetSets <= 1} onPress={() => update(i, { targetSets: item.targetSets - 1 })} />
                   <Text style={styles.value}>{item.targetSets}</Text>
-                  <Small label="+" a11y="More sets" disabled={item.targetSets >= 20} onPress={() => update(i, { targetSets: item.targetSets + 1 })} />
+                  <Small icon="plus" a11y="More sets" disabled={item.targetSets >= 20} onPress={() => update(i, { targetSets: item.targetSets + 1 })} />
                 </View>
               </Field>
               <Field label="REPS">
@@ -208,10 +209,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function Small({ label, a11y, onPress, disabled }: { label: string; a11y: string; onPress: () => void; disabled?: boolean }) {
+function Small({ icon, a11y, onPress, disabled }: { icon: IconKey; a11y: string; onPress: () => void; disabled?: boolean }) {
   return (
     <Pressable onPress={onPress} disabled={disabled} style={styles.small} accessibilityRole="button" accessibilityLabel={a11y} accessibilityState={{ disabled: !!disabled }} hitSlop={4}>
-      <Text style={[styles.smallText, disabled && { color: colors.textDisabled }]}>{label}</Text>
+      <Icon name={icon} size={20} color={disabled ? colors.textDisabled : colors.textPrimary} />
     </Pressable>
   );
 }
@@ -251,7 +252,6 @@ const styles = StyleSheet.create({
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   value: { ...typography.numeric, color: colors.textPrimary, minWidth: 24, textAlign: 'center' },
   small: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: radii.sm },
-  smallText: { fontSize: 18, fontWeight: '900', color: colors.textSecondary },
   numberInput: { ...typography.numeric, color: colors.textPrimary, backgroundColor: colors.surface3, borderRadius: radii.sm, width: 44, height: 40, textAlign: 'center', paddingVertical: 0 },
   rest: { backgroundColor: colors.surface3, borderRadius: radii.sm, height: 40, paddingHorizontal: spacing.md, justifyContent: 'center' },
   add: { minHeight: 48, borderRadius: radii.md, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.accent, alignItems: 'center', justifyContent: 'center' },

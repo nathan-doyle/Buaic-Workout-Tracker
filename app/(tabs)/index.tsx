@@ -1,3 +1,12 @@
-import WorkoutHome from '../../features/workout/WorkoutHome';
+import React from 'react';
 
-export default WorkoutHome;
+import WorkoutHome from '../../features/workout/WorkoutHome';
+import TabScreen from '../../features/shell/TabScreen';
+
+export default function WorkoutTab() {
+  return (
+    <TabScreen>
+      <WorkoutHome />
+    </TabScreen>
+  );
+}

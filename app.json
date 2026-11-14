@@ -65,7 +65,8 @@
         }
       ],
       "./plugins/withShortCmakeObjectPaths",
-      "expo-router"
+      "expo-router",
+      "expo-font"
     ],
     "extra": {
       "eas": {

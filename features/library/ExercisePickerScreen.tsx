@@ -7,11 +7,12 @@ import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } fr
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import AddExerciseModal from '../../components/AddExerciseModal';
+import AddExerciseModal from './AddExerciseModal';
 import { getDb } from '../../db/database';
 import { getExercise, type LibraryExercise, listExercises } from '../../db/routines';
 import { filterExercises } from '../../lib/exerciseSearch';
 import { colors, radii, spacing, typography } from '../../theme';
+import { Icon } from '../ui/Icon';
 import { clearPickRequest, currentPickRequest } from './pickExercise';
 
 export default function ExercisePickerScreen() {
@@ -120,7 +121,11 @@ export default function ExercisePickerScreen() {
                   {item.equipment && item.equipment !== item.variation ? ` · ${item.equipment}` : ''}
                 </Text>
               </View>
-              <Text style={styles.check}>{isExcluded ? 'Added' : isSelected ? '✓' : ''}</Text>
+              {isExcluded ? (
+                <Text style={styles.check}>Added</Text>
+              ) : (
+                <View style={styles.checkBox}>{isSelected && <Icon name="check" size={22} color={colors.accent} />}</View>
+              )}
             </Pressable>
           );
         }}
@@ -208,6 +213,7 @@ const styles = StyleSheet.create({
   sub: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
   muted: { color: colors.textTertiary },
   check: { ...typography.bodyStrong, color: colors.accent, minWidth: 44, textAlign: 'right' },
+  checkBox: { minWidth: 44, alignItems: 'flex-end' },
   addBtn: {
     margin: spacing.lg,
     backgroundColor: colors.accent,

@@ -2,15 +2,23 @@
  * Root layout: providers and the root stack. The tab shell lives in `(tabs)`; the
  * active workout, routines, exercise picker and settings are stack screens above it.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { DatabaseGate } from '../features/startup/DatabaseGate';
+import { iconFont } from '../features/ui/Icon';
+import { WorkoutKeepAwake } from '../features/workout/WorkoutKeepAwake';
 import { WorkoutProvider } from '../features/workout/WorkoutProvider';
 import { colors } from '../theme';
+
+// Keep the splash up until the icon font (bundled in the app, loaded from disk) is ready.
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // The only notification is the rest-over alarm. In the foreground the on-screen timer already
 // plays the chime and buzzes, so the system notification is suppressed to avoid a double alert.
@@ -47,6 +55,18 @@ const withHeader = (title: string) => ({
 });
 
 export default function RootLayout() {
+  const [fontLoaded, fontError] = useFonts(iconFont);
+  // Reduce Motion: screens appear without sliding.
+  const reduceMotion = useReducedMotion();
+  const ready = fontLoaded || fontError !== null;
+
+  useEffect(() => {
+    if (fontError) console.log('Icon font failed to load:', fontError);
+    if (ready) SplashScreen.hideAsync().catch(() => {});
+  }, [ready, fontError]);
+
+  if (!ready) return null;
+
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <SafeAreaProvider>
@@ -54,13 +74,19 @@ export default function RootLayout() {
           {/* Opens and migrates the database first; shows "Your data is safe" if that fails. */}
           <DatabaseGate>
             <WorkoutProvider>
+              <WorkoutKeepAwake />
               <Stack
                 screenOptions={{
                   headerShown: false,
                   contentStyle: { backgroundColor: colors.background },
+                  animation: reduceMotion ? 'none' : 'default',
                 }}
               >
-                <Stack.Screen name="workout" options={{ animation: 'slide_from_bottom', gestureEnabled: false }} />
+                <Stack.Screen name="onboarding" options={{ gestureEnabled: false, animation: reduceMotion ? 'none' : 'fade' }} />
+                <Stack.Screen
+                  name="workout"
+                  options={{ animation: reduceMotion ? 'none' : 'slide_from_bottom', gestureEnabled: false }}
+                />
                 <Stack.Screen name="exercise-picker" options={withHeader('Exercises')} />
                 <Stack.Screen name="routines" options={withHeader('Routines')} />
                 <Stack.Screen name="routine/[id]" options={withHeader('Routine')} />

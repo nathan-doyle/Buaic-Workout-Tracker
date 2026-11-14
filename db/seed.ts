@@ -10,6 +10,7 @@
  */
 import { type DbAdapter, transaction } from './adapter';
 import { addExerciseToSplits } from './queries';
+import { ONBOARDING_STATUS_KEY } from './settings';
 import { V1_DEFAULT_EXERCISES } from './v1Constants';
 
 export const STARTER_SEEDED_KEY = 'starter_content_seeded';
@@ -23,6 +24,15 @@ export function seedDatabase(db: DbAdapter, now: Date = new Date()): boolean {
     if (routines === 0) {
       for (const exercise of V1_DEFAULT_EXERCISES) {
         addExerciseToSplits(db, { ...exercise, isCustom: false }, 'template', nowIso);
+      }
+      // Phase 5: a brand-new user (no routines and no workouts yet) gets the short onboarding.
+      // Anyone upgrading already has this flag set from an earlier launch, so never sees it.
+      const sessions = db.get<{ n: number }>('SELECT COUNT(*) AS n FROM workout_sessions')?.n ?? 0;
+      if (sessions === 0) {
+        db.run('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING', [
+          ONBOARDING_STATUS_KEY,
+          JSON.stringify('pending'),
+        ]);
       }
     }
     db.run('INSERT INTO settings (key, value) VALUES (?, ?)', [STARTER_SEEDED_KEY, 'true']);

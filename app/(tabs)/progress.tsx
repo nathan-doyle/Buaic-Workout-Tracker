@@ -1,3 +1,12 @@
-import ProgressScreen from '../../features/progress/ProgressScreen';
+import React from 'react';
 
-export default ProgressScreen;
+import ProgressScreen from '../../features/progress/ProgressScreen';
+import TabScreen from '../../features/shell/TabScreen';
+
+export default function ProgressTab() {
+  return (
+    <TabScreen>
+      <ProgressScreen />
+    </TabScreen>
+  );
+}

@@ -63,6 +63,16 @@ export const radii = {
 /** Minimum touch target (iOS HIG 44 pt). */
 export const touchTarget = 44;
 
+/**
+ * Caps for Dynamic Type / font scale (`maxFontSizeMultiplier`). Body text scales freely;
+ * dense rows (set tables, calendar cells, the tab row, the rest bar) and fixed-size
+ * controls stop growing where they would overflow.
+ */
+export const maxFontScale = {
+  dense: 1.3,
+  control: 1.5,
+} as const;
+
 const tabular: TextStyle['fontVariant'] = ['tabular-nums'];
 
 /**

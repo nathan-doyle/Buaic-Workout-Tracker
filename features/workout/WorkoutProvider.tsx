@@ -10,13 +10,14 @@
 import React, { createContext, use, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
-import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 import { setAudioModeAsync } from 'expo-audio';
 
 import type { WeightUnit } from '../../lib/units';
 import { useDataRevision } from '../backup/dataRevision';
 import { restTimer } from '../rest/restTimer';
+import { maybeRequestReview } from '../review/reviewPrompt';
+import { haptics } from '../ui/haptics';
 import { settingsStore, useSettings } from '../settings/settingsStore';
 import { activeWorkout } from './activeWorkout';
 import type { WorkoutSummary } from './activeWorkoutStore';
@@ -25,6 +26,8 @@ interface WorkoutContextValue {
   unit: WeightUnit;
   toggleUnit: () => void;
   summaryData: WorkoutSummary | null;
+  /** When the summary was shown (the share card's date). */
+  summaryAt: Date | null;
   showSummaryModal: boolean;
   showSummary: (summary: WorkoutSummary) => void;
   closeSummary: () => void;
@@ -40,6 +43,7 @@ export function useWorkout(): WorkoutContextValue {
 
 export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   const [summaryData, setSummaryData] = useState<WorkoutSummary | null>(null);
+  const [summaryAt, setSummaryAt] = useState<Date | null>(null);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const { unit } = useSettings();
 
@@ -87,7 +91,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   }, [unit]);
 
   const toggleUnit = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    haptics.selection();
     try {
       settingsStore.set('unit', unit === 'kg' ? 'lb' : 'kg');
     } catch (e) {
@@ -99,12 +103,18 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     unit,
     toggleUnit,
     summaryData,
+    summaryAt,
     showSummaryModal,
     showSummary: (summary) => {
       setSummaryData(summary);
+      setSummaryAt(new Date());
       setShowSummaryModal(true);
     },
-    closeSummary: () => setShowSummaryModal(false),
+    closeSummary: () => {
+      setShowSummaryModal(false);
+      // Right after a successful finish: maybe ask for a store review (5+ workouts, once per version).
+      setTimeout(() => void maybeRequestReview(), 600);
+    },
   };
 
   return <WorkoutContext value={value}>{children}</WorkoutContext>;

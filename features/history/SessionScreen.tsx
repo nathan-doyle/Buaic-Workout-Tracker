@@ -21,6 +21,7 @@ import { addSetTo, draftFromDetail, editFromDraft, type EditExerciseDraft, type 
 import { formatLoad, formatVolume, isBodyweightEquipment } from '../../lib/units';
 import { SET_TYPES } from '../../lib/workoutDraft';
 import { colors, radii, spacing, touchTarget, typography } from '../../theme';
+import { Icon, type IconKey } from '../ui/Icon';
 import { useSettings } from '../settings/settingsStore';
 import { activeWorkout } from '../workout/activeWorkout';
 
@@ -165,7 +166,7 @@ export default function SessionScreen({ sessionId }: { sessionId: number }) {
               <TextInput style={styles.input} value={draft.name} onChangeText={(name) => setDraft({ ...draft, name })} accessibilityLabel="Workout name" />
               <Text style={styles.fieldLabel}>DATE</Text>
               <View style={styles.dateRow}>
-                <SmallButton label="◀" a11y="One day earlier" onPress={() => setDraft({ ...draft, localDate: shiftDate(draft.localDate, -1) })} />
+                <SmallButton icon="back" a11y="One day earlier" onPress={() => setDraft({ ...draft, localDate: shiftDate(draft.localDate, -1) })} />
                 <TextInput
                   style={[styles.input, styles.dateInput]}
                   value={draft.localDate}
@@ -175,7 +176,7 @@ export default function SessionScreen({ sessionId }: { sessionId: number }) {
                   keyboardType="numbers-and-punctuation"
                   accessibilityLabel="Date, year month day"
                 />
-                <SmallButton label="▶" a11y="One day later" onPress={() => setDraft({ ...draft, localDate: shiftDate(draft.localDate, 1) })} />
+                <SmallButton icon="forward" a11y="One day later" onPress={() => setDraft({ ...draft, localDate: shiftDate(draft.localDate, 1) })} />
               </View>
               <Text style={styles.caption}>{longDate(draft.localDate)}</Text>
               <Text style={styles.fieldLabel}>NOTES</Text>
@@ -251,7 +252,7 @@ export default function SessionScreen({ sessionId }: { sessionId: number }) {
                         accessibilityLabel={`Delete set ${setIndex + 1}`}
                         hitSlop={4}
                       >
-                        <Text style={styles.removeText}>✕</Text>
+                        <Icon name="close" size={20} color={colors.danger} />
                       </Pressable>
                     </View>
                   ))}
@@ -351,10 +352,10 @@ export function TopBar({ title, onBack, backLabel = 'Back' }: { title: string; o
   );
 }
 
-function SmallButton({ label, a11y, onPress }: { label: string; a11y: string; onPress: () => void }) {
+function SmallButton({ icon, a11y, onPress }: { icon: IconKey; a11y: string; onPress: () => void }) {
   return (
     <Pressable style={styles.smallBtn} onPress={onPress} accessibilityRole="button" accessibilityLabel={a11y}>
-      <Text style={styles.link}>{label}</Text>
+      <Icon name={icon} size={24} color={colors.accent} />
     </Pressable>
   );
 }
@@ -412,7 +413,6 @@ const styles = StyleSheet.create({
   rpeInput: { width: 56, textAlign: 'center', paddingHorizontal: spacing.xs },
   times: { ...typography.caption, color: colors.textSecondary },
   removeBtn: { width: 36, minHeight: touchTarget, alignItems: 'center', justifyContent: 'center' },
-  removeText: { ...typography.bodyStrong, color: colors.danger },
   addSet: { minHeight: touchTarget, justifyContent: 'center' },
   exNotes: { marginTop: spacing.xs },
   link: { ...typography.bodyStrong, color: colors.accent },
