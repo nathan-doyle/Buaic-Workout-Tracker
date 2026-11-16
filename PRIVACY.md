@@ -1,10 +1,10 @@
 # Privacy Policy for Buaic: Workout Tracker
 
-**Last Updated:** November 14, 2026 (Buaic 2.0)
+**Last Updated:** November 16, 2026 (Buaic 2.0, App Store and Google Play)
 
 Nathan Doyle ("Developer", "we", "us", or "our") built the **Buaic: Workout Tracker** mobile application as a standalone, offline-first fitness utility. This Privacy Policy explains what happens to the information you enter in the app.
 
-**In short: Buaic does not collect any data. Your workouts stay on your device, and the app never sends them anywhere.** There is no account, no advertising and no analytics. The App Store privacy label for Buaic is "Data Not Collected".
+**In short: Buaic does not collect any data. Your workouts stay on your device, and the app never sends them anywhere.** There is no account, no advertising and no analytics. The App Store privacy label for Buaic is "Data Not Collected", and its Google Play Data safety section says "No data collected" and "No data shared".
 
 ---
 
@@ -31,11 +31,11 @@ If your phone's own backup is turned on (for example iCloud Backup on iPhone, or
 
 ## 4. Device Permissions and Features
 Buaic may ask for, or use, the following on your device:
-* **Notifications:** asked the first time a rest timer starts, and used only to alert you on the device when the rest is over. These are local notifications scheduled by the app; no notification data leaves your device. On Android, the alarm permissions let the alert arrive on time.
+* **Notifications:** asked the first time a rest timer starts, and used only to alert you on the device when the rest is over. These are local notifications scheduled by the app; no notification data leaves your device. On Android, Buaic may also ask you to allow "Alarms & reminders" so the alert arrives on time while the phone is locked; without it, Android may deliver the alert a little late.
 * **Photos (iPhone, add only):** asked only if you choose "Save Image" for a share card. Buaic can add that image to your library; it cannot see your photos.
 * **Home-screen widget and Live Activity:** the widget (iPhone and Android) and the rest-timer Live Activity (iPhone) show a summary of your training. Buaic updates them directly on your device; the information shown is not sent to any server.
 * **Haptics and keeping the screen awake** during a workout, both on the device and adjustable in Settings.
-* **Rating prompt:** after several finished workouts Buaic may show the system's rating dialog, and on iPhone, Settings → Rate Buaic opens its App Store page. Ratings and reviews are handled by Apple or Google; Buaic does not see them.
+* **Rating prompt:** after several finished workouts Buaic may show the system's rating dialog, and Settings → Rate Buaic opens its App Store or Google Play page. Ratings and reviews are handled by Apple or Google; Buaic does not see them.
 
 ## 5. Third-Party Services & Analytics
 Buaic does not integrate any third-party analytics SDKs, advertising networks, crash reporters, cloud databases, or user tracking frameworks, and it makes no network requests of its own.
