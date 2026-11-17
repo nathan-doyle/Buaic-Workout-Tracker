@@ -2,7 +2,7 @@
 
 A free, offline-first workout tracker for iPhone and Android. No account, no ads, no tracking: your workouts are stored on your phone, and the app never sends them anywhere.
 
-**[Download on the App Store](https://apps.apple.com/app/id6824904502)** (iPhone, iOS 16.4 or later). There's no Play Store listing; on Android, build it from source (see [Development](#development)).
+**[Download on the App Store](https://apps.apple.com/app/id6824904502)** (iPhone, iOS 16.4 or later). On Android, Buaic is in a closed test on Google Play: **[become a tester](ANDROID.md)**, or build it from source (see [Development](#development)).
 
 Version 2.0 is a rebuild of 1.0: routines, a crash-safe workout log, real PRs, progress charts, a home-screen widget and more. Workouts logged in 1.0 come with you when you update.
 
